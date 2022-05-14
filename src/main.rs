@@ -1,9 +1,9 @@
 use tokio;
 
-use revoltchat_rs::websocket::Client;
-use revoltchat_rs::websocket::EventHandler;
-use revoltchat_rs::{models::message::Message as RevoltMessage, http::Http};
-use revoltchat_rs::context::Context;
+use ataraxia::websocket::Client;
+use ataraxia::websocket::EventHandler;
+use ataraxia::{models::message::Message as RevoltMessage, http::Http};
+use ataraxia::context::Context;
 
 struct Handler;
 
