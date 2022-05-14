@@ -18,9 +18,8 @@ impl EventHandler for Handler {
     }
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
         println!("{}", message);
-
-
         if message.content == "!ping" {
+            println!("Pong!");
             ctx.reply("pong").await;
         }
     }

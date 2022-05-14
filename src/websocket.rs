@@ -1,12 +1,12 @@
 
-use std::{sync::Arc};
+use std::{sync::{Arc}, ops::DerefMut};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn, sync::Mutex};
+use tokio::{net::TcpStream, spawn};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use crate::{models::message::Message as RevoltMessage, context::Context};
-
+use async_mutex::Mutex;
 
 #[derive(Clone)]
 
@@ -14,6 +14,7 @@ pub struct Client {
     pub token: String,
     socket: Option<Socket>,
 }
+
 
 #[derive(Clone)]
 struct Socket {
@@ -97,15 +98,7 @@ impl Socket {
         self
     }
 
-    pub async fn send_heartbeat(&self) {
-        println!("[GATEWAY] Sending Heartbeat...");
-        self.socket_writer.lock().await.send(Message::Ping(serde_json::json!({
-            "type": "Ping",
-            "time": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
-        }).to_string()
-        .as_bytes()
-        .to_vec())).await.unwrap();
-    }
+
 
     pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
@@ -122,9 +115,29 @@ impl Socket {
                             
                             match json["type"].as_str() {
                                 Some("Ready") => {
-                                    event.ready(Context::new(&token, &message.to_string())).await
+                                    event.ready(Context::new(&token, &message.to_string())).await;
+
+                                    
                                 },
-                                Some("Authenticated") => event.authenticated().await,
+                                
+                                Some("Authenticated") => {
+                                    event.authenticated().await;
+
+                                    // spawn heartbeat thread 
+                                    
+                                    let writer_clone = Arc::clone(&writer);
+                                    tokio::spawn(async move {
+                                        loop {
+                                            println!("[GATEWAY] Sending Heartbeat...");
+                                            writer_clone.lock().await.send(Message::Text(serde_json::json!({
+                                                "type": "Ping",
+                                                "data": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
+                                            }).to_string())).await.unwrap();
+                                            // release lock and wait for next heartbeat
+                                            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                                        }
+                                    });
+                                },
                                 Some("Message") => {
                                     let message: Result<crate::models::message::Message, serde_json::Error> = serde_json::from_value(json);
                                     if let Ok(message) = message {

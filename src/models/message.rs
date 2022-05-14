@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::http::Http;
-
 #[derive(Serialize, Deserialize)]
 pub struct Message {
     pub _id: String,

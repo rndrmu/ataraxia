@@ -5,6 +5,7 @@ pub struct FrameworkOptions {
     commands: Vec<Command>,
 }
 
+#[allow(dead_code)]
 pub struct Command {
     name: String,
     description: String,
