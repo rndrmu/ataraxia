@@ -1,9 +1,11 @@
 use tokio;
 
+
 use ataraxia::websocket::Client;
 use ataraxia::websocket::EventHandler;
 use ataraxia::{models::message::Message as RevoltMessage, http::Http};
 use ataraxia::context::Context;
+
 
 struct Handler;
 
