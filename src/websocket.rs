@@ -1,10 +1,12 @@
 
-use std::{sync::Arc, time::{SystemTime, UNIX_EPOCH}};
+use std::{sync::Arc};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
+use crate::{models::message::Message as RevoltMessage, context::Context};
+
 
 #[derive(Clone)]
 
@@ -24,8 +26,8 @@ struct Socket {
 pub trait EventHandler: Send + Sync + 'static {
     /*async fn error(&self);*/
     async fn authenticated(&self);
-    async fn ready(&self);
-    async fn on_message(&self, message: Message);
+    async fn ready(&self, context: Context);
+    async fn on_message(&self, context: Context, message: RevoltMessage);
     /*async fn message_update(&self);
     async fn message_delete(&self);
     async fn channel_create(&self);
@@ -116,17 +118,18 @@ impl Socket {
 
                         if message.is_text() {
                             let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
-
-                            if let Some(_type) = json["type"].as_str() {
-                                if _type == "Ready" {
-                                    event.ready().await
-                                }
-                            }
+                            let json_clone = json.clone();
                             
                             match json["type"].as_str() {
+                                Some("Ready") => {
+                                    event.ready(Context::new(&token, &message.to_string())).await
+                                },
                                 Some("Authenticated") => event.authenticated().await,
                                 Some("Message") => {
-                                    event.on_message(message).await;
+                                    let message: Result<crate::models::message::Message, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.on_message(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
                                 },
                                 Some(&_) => {},
                                 None => {},
