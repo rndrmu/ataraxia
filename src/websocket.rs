@@ -3,10 +3,9 @@ use std::{sync::{Arc}, ops::DerefMut};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn};
+use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use crate::{models::message::Message as RevoltMessage, context::Context};
-use async_mutex::Mutex;
 
 #[derive(Clone)]
 
