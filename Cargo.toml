@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 reqwest = "0.11.10"
 url = "2.2.2"
-#tokio-tungstenite = {version = "0.17.1", features = ["native-tls"]}
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 futures-channel = "0.3.21"
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
@@ -20,9 +19,4 @@ async-trait = "0.1.51"
 [dependencies.tokio]
 version = "1"
 default-features = true
-features = ["fs", "macros", "rt", "sync", "time", "rt-multi-thread", "io-util"]
-
-#[dependencies.async-tungstenite]
-#default-features = false
-#features = ["tokio-runtime", "tokio-native-tls"]
-#version = "0.17"
+features = ["fs", "macros", "rt-multi-thread", "io-util"]
