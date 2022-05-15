@@ -1,3 +1,6 @@
+
+
+
 use tokio;
 
 
@@ -11,13 +14,20 @@ struct Handler;
 
 #[async_trait::async_trait]
 impl EventHandler for Handler {
+    /// Function called when the client is authenticated
     async fn authenticated(&self) {
         println!("Authenticated!");
     }
+    /// Function called when the client is ready
     async fn ready(&self, ctx: Context) {
         println!("Ready!");
         println!(":trol:");
     }
+    /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
+    /// 
+    /// # Arguments
+    /// To use arguments you need to somehow split the message into a command and the arguments
+    /// See the `!join` command for an example
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
         println!("{}", message);
         if message.content == "!ping" {
@@ -39,10 +49,15 @@ async fn main() {
 
     dotenv::dotenv().ok();
 
+
+
     let token = std::env::var("REVOLT_TOKEN").expect("token");
 
 
-
+    // Build the client and start it
+    // Handler is the Handler Struct
+    // which implements the EventHandler trait
+    // and acts as "Event Loop" for the client
     Client::new(token).await.run(Handler).await;
 
 
