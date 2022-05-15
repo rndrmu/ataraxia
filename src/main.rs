@@ -23,6 +23,10 @@ impl EventHandler for Handler {
         if message.content == "!ping" {
             println!("Pong!");
             ctx.reply("pong").await;
+        } else if message.content.starts_with("!join") {
+            let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
+            println!("Joining voice channel {}", voice_channel_id);
+            let vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
         }
     }
 }
