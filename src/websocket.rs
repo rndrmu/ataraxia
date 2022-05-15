@@ -114,6 +114,7 @@ impl Socket {
                             
                             match json["type"].as_str() {
                                 Some("Ready") => {
+                                    println!("{}", json);
                                     event.ready(Context::new(&token, &message.to_string())).await;
 
                                     
