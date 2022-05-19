@@ -10,8 +10,12 @@ use crate::{models::message::Message as RevoltMessage, context::Context};
 #[derive(Clone)]
 
 pub struct Client {
+    /// Your bot's Token
     pub token: String,
+    /// The actual Socket Connection
     socket: Option<Socket>,
+    /// defaults to https://api.revolt.chat, if not set
+    api_url: impl Into<String>
 }
 
 
@@ -50,10 +54,17 @@ pub trait EventHandler: Send + Sync + 'static {
 }
 
 impl Client {
-    pub async fn new(token: String) -> Self {
+    pub async fn new(token: String, api_url: Option<impl Into<String>>) -> Self {
+
+        let api_url = match api_url {
+            Some(a) => a,
+            None => "https://api.revolt.chat/"
+        }
+
         Self {
             token,
             socket: None,
+            api_url
         }
     }
 
@@ -90,7 +101,6 @@ impl Socket {
         let arc_handler = Arc::clone(&self.handler);
 
         spawn(async move {
-            println!("Spawning Event Loop...");
             crate::websocket::Socket::handler(handler_reader, handler_writer, arc_token, arc_handler).await;
         }).await.unwrap();
 
