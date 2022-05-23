@@ -10,7 +10,9 @@ use crate::{models::message::Message as RevoltMessage, context::Context};
 #[derive(Clone)]
 
 pub struct Client {
+    /// Your bot's Token
     pub token: String,
+    /// The actual Socket Connection
     socket: Option<Socket>,
     api_url: String
 }
@@ -99,7 +101,6 @@ impl Socket {
         let arc_handler = Arc::clone(&self.handler);
 
         spawn(async move {
-            println!("Spawning Event Loop...");
             crate::websocket::Socket::handler(handler_reader, handler_writer, arc_token, arc_handler).await;
         }).await.unwrap();
 
