@@ -37,6 +37,7 @@ impl EventHandler for Handler {
             let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
             println!("Joining voice channel {}", voice_channel_id);
             let vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
+            ctx.reply("Okay, i joined the channel!").await;
         }
     }
 }
@@ -58,7 +59,10 @@ async fn main() {
     // Handler is the Handler Struct
     // which implements the EventHandler trait
     // and acts as "Event Loop" for the client
-    Client::new(token).await.run(Handler).await;
+    // to use the default public instance of revolt, pass None as second parameter
+    // other wise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
+    let mut client = Client::new(token, None).await;
+    client.run(Handler).await;
 
 
 

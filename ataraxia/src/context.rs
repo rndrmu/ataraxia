@@ -1,7 +1,7 @@
 use crate::models::message::Message;
 use crate::http::Http;
 use serde_json::{json, Error};
-
+use ataraxia_voice::vortex_socket::*;
 
 #[derive(Clone)]
 pub struct Context {
@@ -12,7 +12,7 @@ pub struct Context {
 
 #[derive(serde::Deserialize)]
 pub struct VoiceChannel {
-    token: String,
+    pub token: String,
 }
 
 
@@ -45,6 +45,7 @@ impl Context {
                 "content": message,
                 "replies": [{
                     "id": json._id,
+                    // true here somehow leads to the server never sending a response back? 
                     "mention": false,
                 }]
             }).to_string())
@@ -54,7 +55,7 @@ impl Context {
         }
     }
 
-    pub async fn join_voice_channel(&self, channel: &str) -> Result<VoiceChannel, serde_json::Error> {
+    pub async fn join_voice_channel(&self, channel: &str) -> Result<(), serde_json::Error> {
         let res = reqwest::Client::new().post(
             format!("https://api.revolt.chat/channels/{}/join_call", channel).as_str(),
         )
@@ -67,10 +68,15 @@ impl Context {
         // get result 
         let json: Result<VoiceChannel, Error> = serde_json::from_str(res.text().await.unwrap().as_str());
 
-        match json {
-            Ok(json) => Ok(json),
-            Err(e) => Err(e),
-        }
+        let vc = match json {
+            Ok(json) => json,
+            Err(e) => {println!("FAILED TO JOIN VOICE CALL -> {:?}", e); return Ok(())},
+        };
+
+        let mut voice_client = ataraxia_voice::vortex_socket::VoiceClient::new(vc.token, None).await;
+        voice_client.init(channel).await;
+
+        Ok(())
 
     }
 
