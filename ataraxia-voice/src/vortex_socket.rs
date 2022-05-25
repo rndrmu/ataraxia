@@ -83,7 +83,7 @@ impl Socket {
             "type": "RoomInfo"
         }).to_string())).await.unwrap();
 
-        self.socket_writer.lock().await.send(Message::Text(json!({"id":25,"type":"InitializeTransports","data":{"mode":"SplitWebRTC","rtpCapabilities":{"codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],"headerExtensions":[{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
+        self.socket_writer.lock().await.send(Message::Text(json!({"id":25,"type":"InitializeTransports","data":{"mode":"CombinedRTP","rtpCapabilities":{"codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],"headerExtensions":[{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
     ).to_string())).await.unwrap();
     
 
@@ -154,14 +154,33 @@ impl Socket {
                                     //  });
                                 },
                                 Some("InitializeTransports") => {
-                                    let ip = json["data"]["sendTransport"]["iceCandidates"][0]["ip"].as_str().unwrap();
+                                    println!("{:?}", json);
+
+                                    let ip = json["data"]["ip"].as_str().unwrap();
+                                    let port = json["data"]["port"].as_i64().unwrap();
+
+                                    let udp_socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await.unwrap();
+                                    udp_socket.connect(
+                                        format!("{}:{}", ip, port)
+                                    ).await.unwrap();
+                                    //println!("Connected to UDP Socket!")
+
+
+                                    /* let ip = json["data"]["sendTransport"]["iceCandidates"][0]["ip"].as_str().unwrap();
                                     let port = json["data"]["sendTransport"]["iceCandidates"][0]["port"].as_u64().unwrap();
+
+
 
                                     println!("[VORTEX] Initializing Transports");
                                     println!("[VORTEX] IP: {}", ip);
-                                    println!("[VORTEX] Port: {}", port);
+                                    println!("[VORTEX] Port: {}", port); */
 
                                 },
+
+                                Some("StartProduce") => {
+                                    // Send Audio here
+                                }
+
                                 Some(&_) => {
                                     println!("[VORTEX] Received Message Type: {}", json["type"]);
                                 },
