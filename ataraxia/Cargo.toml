@@ -16,6 +16,7 @@ serde_json = "1.0.67"
 dotenv = "0.13.0"
 tokio-tungstenite = { version = "0.17.1", default-features = false, features = ["native-tls", "connect"]}
 async-trait = "0.1.51"
+tower = { version = "0.4.12", features = ["full"]}
 
 # for the revolt vortex voice chat 
 ataraxia-voice = { path = "../ataraxia-voice", optional = false }

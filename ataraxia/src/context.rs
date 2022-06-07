@@ -1,5 +1,6 @@
 use crate::models::message::Message;
 use crate::http::Http;
+use futures_util::Future;
 use serde_json::{json, Error};
 use ataraxia_voice::vortex_socket::*;
 
@@ -118,20 +119,6 @@ impl Context {
         .unwrap();
     }
 
-    /* pub async fn send_message<S>(&self, message: S) where S: FnOnce(&mut MessageBuilder) -> MessageBuilder {
-        let json: Result<Message, Error> = serde_json::from_value(self.json.clone());
-        if let Ok(json) = json {
-            reqwest::Client::new().post(
-                format!("https://api.revolt.chat/channels/{}/messages", json.channel).as_str(),
-            )
-            .header("x-bot-token", self.token.clone())
-            .header("content-type", "application/json")
-            .body(message(message))
-            .send()
-            .await
-            .unwrap();
-        }
-    } */
 
 
 }
