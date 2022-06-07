@@ -31,6 +31,7 @@ impl EventHandler for Handler {
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
         println!("{}", message);
         if message.content == "!ping" {
+            println!("{:?}", ctx.json);
             println!("Pong!");
             ctx.reply("pong").await;
         } else if message.content.starts_with("!join") {

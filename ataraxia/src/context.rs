@@ -80,6 +80,44 @@ impl Context {
 
     }
 
+    pub async fn kick_member(&self, server_id: &str, member_id: &str) {
+        let res = reqwest::Client::new().delete(
+            format!("https://api.revolt.chat/servers/{}/member/{}", server_id, member_id).as_str(),
+        )
+        .header("x-bot-token", &self.token)
+        .send()
+        .await
+        .unwrap();
+    }
+
+    pub async fn ban_member(&self, server_id: &str, member_id: &str) {
+        let res = reqwest::Client::new().post(
+            format!("https://api.revolt.chat/servers/{}/bans/{}", server_id, member_id).as_str(),
+        )
+        .header("x-bot-token", &self.token)
+        .header("content-type", "application/json")
+        .body(json!({
+            "reason": "null",
+        }).to_string())
+        .send()
+        .await
+        .unwrap();
+    }
+
+    pub async fn ban_with_reason(&self, server_id: &str, member_id: &str, reason: &str) {
+        let res = reqwest::Client::new().post(
+            format!("https://api.revolt.chat/servers/{}/bans/{}", server_id, member_id).as_str(),
+        )
+        .header("x-bot-token", &self.token)
+        .header("content-type", "application/json")
+        .body(json!({
+            "reason": reason,
+        }).to_string())
+        .send()
+        .await
+        .unwrap();
+    }
+
     /* pub async fn send_message<S>(&self, message: S) where S: FnOnce(&mut MessageBuilder) -> MessageBuilder {
         let json: Result<Message, Error> = serde_json::from_value(self.json.clone());
         if let Ok(json) = json {
