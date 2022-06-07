@@ -7,9 +7,9 @@ use std::{sync::{Arc}, ops::DerefMut};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn, sync::Mutex};
+use tokio::{net::TcpStream, spawn, sync::Mutex, io::AsyncReadExt};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-
+use rtp_rs::*;
 
 #[derive(Clone)]
 
@@ -18,7 +18,9 @@ pub struct VoiceClient {
     pub token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
-    api_url: String
+    api_url: String,
+    ata_socket: Arc<Option<Socket>>
+
 }
 
 
@@ -26,6 +28,7 @@ pub struct VoiceClient {
 struct Socket {
     socket_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    udp_socket: Arc<Mutex<tokio::net::UdpSocket>>,
 }
 
 
@@ -42,7 +45,8 @@ impl VoiceClient {
         Self {
             token,
             socket: None,
-            api_url
+            api_url,
+            ata_socket: Arc::new(None)
         }
     }
 
@@ -50,25 +54,36 @@ impl VoiceClient {
     pub async fn init(&mut self, channel_id: &str) {
         let websocket = Socket::new().await;
         self.socket = Some(websocket);
-        self.socket.as_mut().unwrap().connect(&self.token, channel_id).await;
+        let conn = self.socket.clone().unwrap().connect(&self.token, channel_id).await;
+        self.ata_socket = Arc::new(Some(conn));
+        println!("Connected!");
     }
+
+
+    pub async fn play_source(&mut self, source: &str) {
+
+       
+    }
+
 }
 
 impl Socket {
     pub async fn new() -> Socket {
         let (ws_stream, _) = connect_async("wss://vortex.revolt.chat").await.unwrap();
         let (writer, reader) = ws_stream.split();
+        let udp_socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await.unwrap();
 
         Socket {
             socket_writer: Arc::from(Mutex::new(writer)),
             socket_reader: Arc::from(Mutex::new(reader)),
+            udp_socket: Arc::from(Mutex::new(udp_socket))
         }
     }
 
     /// Authenticate to Voice Servers
     /// Where `token` is your bots token
     /// and `channel_id` is the channel id of the voice channel you are connecting to
-    pub async fn connect(&self, token: &String, channel_id: &str) -> &Socket {
+    pub async fn connect(self, token: &String, channel_id: &str) -> Socket {
         self.socket_writer.lock().await.send(Message::Text(json!({
             "id": 0,
             "data": {
@@ -91,15 +106,22 @@ impl Socket {
         {"id":30,"type":"StartProduce","data":{"type":"audio","rtpParameters":{"codecs":[{"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],"headerExtensions":[{"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},{"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},{"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},{"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],"encodings":[{"ssrc":3082236920i64,"dtx":false}],"rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":true},"mid":"0"}}}
 ).to_string())).await.unwrap();
 
+println!("3 pew pew");
 
 
         let handler_reader = Arc::clone(&self.socket_reader);
         let handler_writer = Arc::clone(&self.socket_writer);
         let arc_token = Arc::clone(&Arc::new(token.to_owned()));
 
-        spawn(async move {
-            crate::vortex_socket::Socket::handler(handler_reader, handler_writer, arc_token).await;
-        }).await.unwrap();
+        let self_clone = self.clone();
+        println!("2 pew pew");
+
+
+        tokio::spawn(async move {
+            crate::vortex_socket::Socket::handler(&self_clone, handler_reader, handler_writer, arc_token).await;
+        });
+
+        println!("pew pew");
 
         self
     }
@@ -107,7 +129,7 @@ impl Socket {
 
 
 
-    pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    pub async fn handler(&self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         token: Arc<String>
     )
@@ -154,31 +176,47 @@ impl Socket {
                                     //  });
                                 },
                                 Some("InitializeTransports") => {
-                                    println!("{:?}", json);
+                                    println!("[DEBUG] JSON PAYLOAD {:?}", json);
 
                                     let ip = json["data"]["ip"].as_str().unwrap();
                                     let port = json["data"]["port"].as_i64().unwrap();
 
-                                    let udp_socket = tokio::net::UdpSocket::bind("0.0.0.0:0").await.unwrap();
-                                    udp_socket.connect(
+                                    self.udp_socket.lock().await.connect(
                                         format!("{}:{}", ip, port)
                                     ).await.unwrap();
-                                    //println!("Connected to UDP Socket!")
-
-
-                                    /* let ip = json["data"]["sendTransport"]["iceCandidates"][0]["ip"].as_str().unwrap();
-                                    let port = json["data"]["sendTransport"]["iceCandidates"][0]["port"].as_u64().unwrap();
-
-
-
-                                    println!("[VORTEX] Initializing Transports");
-                                    println!("[VORTEX] IP: {}", ip);
-                                    println!("[VORTEX] Port: {}", port); */
-
+                                    println!("[VORTEX] UDP Socket Connected");
                                 },
 
                                 Some("StartProduce") => {
                                     // Send Audio here
+                                    println!("[VORTEX] Start Produce");
+
+                                    let ffmpeg = tokio::process::Command::new("ffmpeg")
+                                        .arg("-i")
+                                        .arg("/home/me/audio/meddl.webm")
+                                        .arg("-f")
+                                        .arg("s16le")
+                                        .arg("-ac")
+                                        .arg("2")
+                                        .arg("-ar")
+                                        .arg("48000")
+                                        .arg("-acodec")
+                                        .arg("pcm_f32le")
+                                        .arg("-")
+                                        .output()
+                                        .await
+                                        .expect("[CRITICAL] Failed to execute ffmpeg");
+
+
+                                    let payload = ffmpeg.stdout;
+                                    let result = RtpPacketBuilder::new()
+                                        .payload_type(10)
+                                        .payload(&payload)
+                                        .build();
+                                    if let Ok(packet) = result {
+                                        println!("Packet: {:?}", packet);
+                                        self.udp_socket.lock().await.send(&packet).await.unwrap();
+                                    }
                                 }
 
                                 Some(&_) => {
