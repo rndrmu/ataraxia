@@ -16,8 +16,8 @@ pub struct Channel {
     pub channel_id : String,
     pub server: String,
     pub name: String,
-    pub description: String,
-    pub icon: ChannelIcon
+    pub description: Option<String>,
+    pub icon: Option<ChannelIcon>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

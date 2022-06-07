@@ -2,8 +2,23 @@ use crate::models::message::Message;
 use crate::http::Http;
 use futures_util::Future;
 use serde_json::{json, Error};
+
+#[cfg(feature = "voice")]
 use ataraxia_voice::vortex_socket::*;
 
+use tracing::{debug, info, warn, error};
+use super::models::channel::Channel as RevoltChannel;
+
+/// Helpful Struct relating to the current execution context
+/// 
+/// Also contains a lot of very useful functions 
+/// 
+/// ### To Join a Voice Channel
+/// ```rust
+/// use ataraxia::context::Context;
+/// 
+/// let ctx = Context::new("token").await.unwrap();
+/// 
 #[derive(Clone)]
 pub struct Context {
     pub token: String,
@@ -71,7 +86,7 @@ impl Context {
 
         let vc = match json {
             Ok(json) => json,
-            Err(e) => {println!("FAILED TO JOIN VOICE CALL -> {:?}", e); return Ok(())},
+            Err(e) => {error!("FAILED TO JOIN VOICE CALL -> {:?}", e); return Ok(())},
         };
 
         let mut voice_client = ataraxia_voice::vortex_socket::VoiceClient::new(vc.token, None).await;
@@ -117,6 +132,23 @@ impl Context {
         .send()
         .await
         .unwrap();
+    }
+
+    pub async fn get_channel(&self, channel_id: &str) -> Result<RevoltChannel, serde_json::Error> {
+        let res = reqwest::Client::new().get(
+            format!("https://api.revolt.chat/channels/{}", channel_id).as_str(),
+        )
+        .header("x-bot-token", &self.token)
+        .send()
+        .await
+        .unwrap();
+
+        let json: Result<RevoltChannel, Error> = serde_json::from_str(res.text().await.unwrap().as_str());
+
+        match json {
+            Ok(json) => Ok(json),
+            Err(e) => {error!("FAILED TO GET CHANNEL -> {:?}", e); return Err(e)},
+        }
     }
 
 

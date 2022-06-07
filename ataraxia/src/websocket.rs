@@ -1,5 +1,6 @@
 
 use std::{sync::{Arc}, ops::DerefMut};
+use tracing::{debug, info, warn, error};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
@@ -124,7 +125,7 @@ impl Socket {
                             
                             match json["type"].as_str() {
                                 Some("Ready") => {
-                                    println!("{}", json);
+                                    debug!("{}", json);
                                     event.ready(Context::new(&token, &message.to_string())).await;
 
                                     
@@ -138,7 +139,7 @@ impl Socket {
                                     let writer_clone = Arc::clone(&writer);
                                     tokio::spawn(async move {
                                         loop {
-                                            println!("[GATEWAY] Sending Heartbeat...");
+                                            info!("[GATEWAY] Sending Heartbeat...");
                                             writer_clone.lock().await.send(Message::Text(serde_json::json!({
                                                 "type": "Ping",
                                                 "data": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
@@ -161,7 +162,7 @@ impl Socket {
 
                     }
                     Err(e) => {
-                        return eprintln!("{:?}", e);
+                        return error!("{:?}", e);
                     }
                 }
             }

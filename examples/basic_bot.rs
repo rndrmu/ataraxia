@@ -3,29 +3,30 @@
 
 use tokio;
 
-
-use ataraxia::websocket::Client;
-use ataraxia::websocket::EventHandler;
-use ataraxia::{models::message::Message as RevoltMessage, http::Http};
-use ataraxia::context::Context;
-
+use ataraxia::{
+    websocket::{Client, EventHandler},
+    models::message::Message as RevoltMessage,
+    http::Http,
+    context::Context,
+    async_trait
+};
 
 struct Handler;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl EventHandler for Handler {
     /// Function called when the client is authenticated
     async fn authenticated(&self) {
         println!("Authenticated!");
     }
     /// Function called when the client is ready
-    async fn ready(&self, ctx: Context) {
+    async fn ready(&self, _ctx: Context) {
         println!("Ready!");
         println!(":trol:");
     }
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
     /// 
-    /// # Arguments
+    /// ### Arguments
     /// To use arguments you need to somehow split the message into a command and the arguments
     /// See the `!join` command for an example
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
@@ -37,8 +38,11 @@ impl EventHandler for Handler {
         } else if message.content.starts_with("!join") {
             let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
             println!("Joining voice channel {}", voice_channel_id);
-            let vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
+            let _vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
             ctx.reply("Okay, i joined the channel!").await;
+        } else if message.content == "!chinf" {
+            let chn = ctx.get_channel(&message.channel).await.unwrap();
+            println!("{:?}", chn);
         }
     }
 }
@@ -50,6 +54,12 @@ impl EventHandler for Handler {
 async fn main() {
 
     dotenv::dotenv().ok();
+
+    // enable tracing at the lowest level    
+    std::env::set_var("RUST_LOG", "debug");
+    
+    tracing_subscriber::fmt::init();
+
 
 
 
