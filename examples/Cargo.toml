@@ -16,5 +16,5 @@ default-features = true
 features = ["fs", "macros", "rt-multi-thread", "io-util"]
 
 [[example]]
-name = "ping-pong-bot"
+name = "devbot"
 path = "./basic_bot.rs"

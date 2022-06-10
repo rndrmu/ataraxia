@@ -3,11 +3,11 @@
 
 
 
-use std::{sync::{Arc}, ops::DerefMut};
+use std::{sync::{Arc}};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn, sync::Mutex, io::AsyncReadExt};
+use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use rtp_rs::*;
 
@@ -60,7 +60,7 @@ impl VoiceClient {
     }
 
 
-    pub async fn play_source(&mut self, source: &str) {
+    pub async fn play_source(&mut self, _source: &str) {
 
        
     }
@@ -130,8 +130,8 @@ println!("3 pew pew");
 
 
     pub async fn handler(&self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
-        writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-        token: Arc<String>
+        _writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+        _token: Arc<String>
     )
     {
             while let Some(message) = reader.lock().await.next().await {
@@ -140,7 +140,7 @@ println!("3 pew pew");
 
                         if message.is_text() {
                             let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
-                            let json_clone = json.clone();
+                            let _json_clone = json.clone();
                             
                             match json["type"].as_str() {                                
                                 Some("Authenticate") => {

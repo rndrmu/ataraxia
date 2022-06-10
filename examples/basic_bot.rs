@@ -6,7 +6,6 @@ use tokio;
 use ataraxia::{
     websocket::{Client, EventHandler},
     models::message::Message as RevoltMessage,
-    http::Http,
     context::Context,
     async_trait
 };
@@ -19,28 +18,39 @@ impl EventHandler for Handler {
     async fn authenticated(&self) {
         println!("Authenticated!");
     }
-    /// Function called when the client is ready
+    /// Function called when the client is ready to receive events
     async fn ready(&self, _ctx: Context) {
         println!("Ready!");
-        println!(":trol:");
     }
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
     /// 
-    /// ### Arguments
+    /// ### How to use Arguments
     /// To use arguments you need to somehow split the message into a command and the arguments
     /// See the `!join` command for an example
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
         println!("{}", message);
+
         if message.content == "!ping" {
+
             println!("{:?}", ctx.json);
             println!("Pong!");
-            ctx.reply("pong").await;
+
+            ctx.reply_builder(&message.channel, |r| {
+                r.content("hello!")
+                .masquerade("Ataraxia Test Bot", "https://m.media-amazon.com/images/I/41FN5RkpVeL._SX450_.jpg")
+            }).await
+
+
         } else if message.content.starts_with("!join") {
+
+
             let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
             println!("Joining voice channel {}", voice_channel_id);
             let _vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
             ctx.reply("Okay, i joined the channel!").await;
-        } else if message.content == "!chinf" {
+
+
+        } else if message.content == "!channelinfo" {
             let chn = ctx.get_channel(&message.channel).await.unwrap();
             println!("{:?}", chn);
         }
@@ -55,8 +65,7 @@ async fn main() {
 
     dotenv::dotenv().ok();
 
-    // enable tracing at the lowest level    
-    std::env::set_var("RUST_LOG", "debug");
+    std::env::set_var("RUST_LOG", "debug"); // noisy logging 
     
     tracing_subscriber::fmt::init();
 

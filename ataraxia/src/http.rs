@@ -1,8 +1,8 @@
 use reqwest::Client;
-use reqwest::{Body, Method, Request, Url};
-use std::time::Duration;
-use tower::Service;
-use tower::ServiceExt;
+
+
+
+
 
 pub static API_BASE_URL: &str = "https://api.revolt.chat";
 
@@ -46,6 +46,35 @@ impl Http
     pub async fn post(destination: &str, token: &str, body: serde_json::Value) -> Result<(), reqwest::Error> {
         let client = Client::new();
         let res = client.post(format!("{}/{}", API_BASE_URL, destination))
+        .header("x-bot-token", format!("{token}", token = token))
+        .header("content-type", "application/json")
+        .body(body.to_string())
+        .send()
+        .await;
+
+        res.map(|_| ())
+    }
+
+    /// Sends a GET request to the revolt api
+    /// ```rs
+    /// let a = Http::new();
+    /// let b = a.get("channel/abc/messages", "my_bot_token").await;
+    /// ```
+    /// 
+    pub async fn get(destination: &str, token: &str) -> Result<(), reqwest::Error> {
+        let client = Client::new();
+        let res = client.get(format!("{}/{}", API_BASE_URL, destination))
+        .header("x-bot-token", format!("{token}", token = token))
+        .send()
+        .await;
+
+        res.map(|_| ())
+    }
+
+    /// Sends a DELETE request to the revolt api
+    pub async fn delete(destination: &str, token: &str, body: serde_json::Value) -> Result<(), reqwest::Error> {
+        let client = Client::new();
+        let res = client.delete(format!("{}/{}", API_BASE_URL, destination))
         .header("x-bot-token", format!("{token}", token = token))
         .header("content-type", "application/json")
         .body(body.to_string())

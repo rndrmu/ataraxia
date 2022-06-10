@@ -1,23 +1,38 @@
-use crate::models::message::Message;
+use crate::models::message::{Message, CreateMessage, hashmap_to_json_map, to_value};
 use crate::http::Http;
-use futures_util::Future;
+
 use serde_json::{json, Error};
 
 #[cfg(feature = "voice")]
 use ataraxia_voice::vortex_socket::*;
 
-use tracing::{debug, info, warn, error};
+use tracing::{error};
 use super::models::channel::Channel as RevoltChannel;
 
 /// Helpful Struct relating to the current execution context
 /// 
 /// Also contains a lot of very useful functions 
 /// 
+/// ## Examples 
+/// 
 /// ### To Join a Voice Channel
-/// ```rust
+/// ```no_run
 /// use ataraxia::context::Context;
 /// 
-/// let ctx = Context::new("token").await.unwrap();
+/// // You won't need to Instantiate the Context, it will be created for you
+/// // When your client receives an event
+/// let ctx = Context::new("token", "{\"some\": \"json\"}");
+/// let vc = ctx.join_voice_channel("channel_id");
+/// ```
+/// 
+/// ### To Send a Message
+/// ```no_run
+/// use ataraxia::context::Context;
+/// let ctx = Context::new("token", "{\"some\": \"json\"}");
+/// ctx.reply("Hello World!");
+/// ```
+/// 
+/// 
 /// 
 #[derive(Clone)]
 pub struct Context {
@@ -46,8 +61,12 @@ impl Context {
         }
     }
 
+    /// Replies to the current message that is in context
     pub async fn reply(&self, message: &str) {
         let json: Result<Message, Error> = serde_json::from_value(self.json.clone());
+
+        // If should masquerade, do 
+
         if let Ok(json) = json {
 
             
@@ -61,9 +80,9 @@ impl Context {
                 "content": message,
                 "replies": [{
                     "id": json._id,
-                    // true here somehow leads to the server never sending a response back? 
+                    // setting mention to true here somehow leads to the server never sending a response back? 
                     "mention": false,
-                }]
+                }],
             }).to_string())
             .send()
             .await
@@ -71,6 +90,33 @@ impl Context {
         }
     }
 
+    pub async fn reply_builder<F>(&self, channel_id: &str, f: F)
+    where F: FnOnce(&mut CreateMessage) -> &mut CreateMessage {
+
+        // get result from builder
+        let mut builder = CreateMessage::default();
+        f(&mut builder);
+
+
+
+        //let json: Result<CreateMessage, Error> = serde_json::from_value(to_value(builder.0).unwrap());
+
+        println!("hello world");
+
+
+            reqwest::Client::new().post(
+                format!("https://api.revolt.chat/channels/{}/messages", channel_id).as_str(),
+            )
+            .header("x-bot-token", self.token.clone())
+            .header("content-type", "application/json")
+            .body(to_value(builder).unwrap().to_string())
+            .send()
+            .await
+            .unwrap();
+        
+    }
+
+    /// Joins the specified voice channel
     pub async fn join_voice_channel(&self, channel: &str) -> Result<(), serde_json::Error> {
         let res = reqwest::Client::new().post(
             format!("https://api.revolt.chat/channels/{}/join_call", channel).as_str(),
@@ -96,8 +142,9 @@ impl Context {
 
     }
 
+    /// Kick a user from the Server 
     pub async fn kick_member(&self, server_id: &str, member_id: &str) {
-        let res = reqwest::Client::new().delete(
+        let _res = reqwest::Client::new().delete(
             format!("https://api.revolt.chat/servers/{}/member/{}", server_id, member_id).as_str(),
         )
         .header("x-bot-token", &self.token)
@@ -106,8 +153,9 @@ impl Context {
         .unwrap();
     }
 
+    /// Ban a member from the server
     pub async fn ban_member(&self, server_id: &str, member_id: &str) {
-        let res = reqwest::Client::new().post(
+        let _res = reqwest::Client::new().post(
             format!("https://api.revolt.chat/servers/{}/bans/{}", server_id, member_id).as_str(),
         )
         .header("x-bot-token", &self.token)
@@ -120,8 +168,9 @@ impl Context {
         .unwrap();
     }
 
+    /// Ban a User from the Server with a Reason
     pub async fn ban_with_reason(&self, server_id: &str, member_id: &str, reason: &str) {
-        let res = reqwest::Client::new().post(
+        let _res = reqwest::Client::new().post(
             format!("https://api.revolt.chat/servers/{}/bans/{}", server_id, member_id).as_str(),
         )
         .header("x-bot-token", &self.token)
@@ -150,6 +199,8 @@ impl Context {
             Err(e) => {error!("FAILED TO GET CHANNEL -> {:?}", e); return Err(e)},
         }
     }
+
+
 
 
 
