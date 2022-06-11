@@ -38,6 +38,13 @@ impl EventHandler for Handler {
             ctx.reply_builder(&message.channel, |r| {
                 r.content("hello!")
                 .masquerade("Ataraxia Test Bot", "https://m.media-amazon.com/images/I/41FN5RkpVeL._SX450_.jpg")
+                .create_embed(|embed| {
+                    embed.title("Test Embed")
+                    .description("Ich bin nicht derjeniche!")
+                    .url("https://www.youtube.com/watch?v=FcSeR4fdqbs")
+                    .colour("#ff0000")
+                    .icon_url("https://imgflip.com/meme/382391167/Rainer-Winkler-Br")
+                })
             }).await
 
 

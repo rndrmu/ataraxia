@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-#voice = ["dep:ataraxia-voice"]
+voice = ["dep:ataraxia-voice"]
 
 [dependencies]
 reqwest = "0.11.10"
@@ -20,7 +20,7 @@ tower = { version = "0.4.12", features = ["full"]}
 tracing = "0.1.34"
 
 # for the revolt vortex voice chat 
-ataraxia-voice = { path = "../ataraxia-voice", optional = false }
+ataraxia-voice = { path = "../ataraxia-voice", optional = true }
 
 [dependencies.tokio]
 version = "1"

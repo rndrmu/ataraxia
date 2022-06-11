@@ -116,7 +116,9 @@ impl Context {
         
     }
 
+    #[cfg(feature = "voice")]
     /// Joins the specified voice channel
+    /// Only available if the `voice` feature is enabled
     pub async fn join_voice_channel(&self, channel: &str) -> Result<(), serde_json::Error> {
         let res = reqwest::Client::new().post(
             format!("https://api.revolt.chat/channels/{}/join_call", channel).as_str(),

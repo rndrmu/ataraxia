@@ -6,9 +6,12 @@ authors = ["rndrmu"]
 edition = "2021"
 
 [dependencies]
-ataraxia = { path = "../ataraxia" }
 dotenv = "0.13.0"
 tracing-subscriber = "0.3.11"
+
+[dependencies.ataraxia]
+path = "../ataraxia"
+features = ["voice"]
 
 [dependencies.tokio]
 version = "1"
