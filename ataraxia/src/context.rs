@@ -1,9 +1,10 @@
-use crate::models::message::{Message, CreateMessage, hashmap_to_json_map, to_value};
+use crate::models::message::{Message, CreateMessage, to_value};
 use crate::http::Http;
 
 use serde_json::{json, Error};
 
 #[cfg(feature = "voice")]
+#[allow(unused_imports)]
 use ataraxia_voice::vortex_socket::*;
 
 use tracing::{error};
@@ -72,7 +73,7 @@ impl Context {
             
 
             reqwest::Client::new().post(
-                format!("https://api.revolt.chat/channels/{}/messages", json.channel).as_str(),
+                format!("https://api.revolt.chat/channels/{}/messages", json.channel_id).as_str(),
             )
             .header("x-bot-token", self.token.clone())
             .header("content-type", "application/json")
@@ -90,6 +91,9 @@ impl Context {
         }
     }
 
+    /// Constructs a new Message, replying to the current message that is in context
+    /// 
+    ///
     pub async fn reply_builder<F>(&self, channel_id: &str, f: F)
     where F: FnOnce(&mut CreateMessage) -> &mut CreateMessage {
 

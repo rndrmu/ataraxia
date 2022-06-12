@@ -32,17 +32,24 @@ impl EventHandler for Handler {
 
         if message.content == "!ping" {
 
-            println!("{:?}", ctx.json);
-            println!("Pong!");
 
-            ctx.reply_builder(&message.channel, |r| {
+            ctx.reply_builder(&message.channel_id, |r| {
                 r.content("hello!")
-                .masquerade("Ataraxia Test Bot", "https://m.media-amazon.com/images/I/41FN5RkpVeL._SX450_.jpg")
+                .set_masquerade(|masquerade| {
+                    masquerade.name("Rainer Winkler")
+                })
                 .create_embed(|embed| {
                     embed.title("Test Embed")
                     .description("Ich bin nicht derjeniche!")
                     .url("https://www.youtube.com/watch?v=FcSeR4fdqbs")
                     .colour("#ff0000")
+                    .icon_url("https://imgflip.com/meme/382391167/Rainer-Winkler-Br")
+                })
+                .create_embed(|embed2| {
+                    embed2.title("Test Embed 2")
+                    .description("Ich bin nicht derjeniche!")
+                    .url("https://www.youtube.com/watch?v=FcSeR4fdqbs")
+                    .colour("#00ffff")
                     .icon_url("https://imgflip.com/meme/382391167/Rainer-Winkler-Br")
                 })
             }).await
@@ -58,7 +65,7 @@ impl EventHandler for Handler {
 
 
         } else if message.content == "!channelinfo" {
-            let chn = ctx.get_channel(&message.channel).await.unwrap();
+            let chn = ctx.get_channel(&message.channel_id).await.unwrap();
             println!("{:?}", chn);
         }
     }

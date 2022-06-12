@@ -15,6 +15,7 @@ pub struct Client {
     pub token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
+    #[allow(dead_code)]
     api_url: String
 }
 

@@ -5,7 +5,8 @@ use serde_json::Value;
 pub struct Message {
     pub _id: String,
     pub author: String,
-    pub channel: String,
+    #[serde(rename = "channel")]
+    pub channel_id: String,
     pub content: String,
     pub nonce: String,
     pub mentions: Option<Vec<String>>,
@@ -37,9 +38,9 @@ pub struct MessageMetadata {
 impl std::fmt::Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.content.is_empty() {
-            write!(f, "Channel: {}, Author: {}", self.channel, self.author)
+            write!(f, "Channel: {}, Author: {}", self.channel_id, self.author)
         } else {
-            write!(f, "Channel: {}, Author: {}, Content: {}", self.channel, self.author, self.content)
+            write!(f, "Channel: {}, Author: {}, Content: {}", self.channel_id, self.author, self.content)
         }
     }
 }
@@ -67,10 +68,12 @@ pub struct CreateEmbed (
 );
 
 #[derive(Serialize, Deserialize, Debug)]
-struct MasqueradeMessage {
-    pub name: String,
-    pub avatar: String,
+pub struct MasqueradeMessage {
+    pub name: Option<String>,
+    pub avatar: Option<String>,
 }
+
+
 
 impl CreateMessage {
      /// Set the content of the message.
@@ -83,11 +86,19 @@ impl CreateMessage {
     }
 
 
-    pub fn masquerade(&mut self, name: &str, avatar: &str) -> &mut Self {
+    pub fn masquerade(&mut self, name: &str) -> &mut Self {
         self.0.insert("masquerade", serde_json::to_value(MasqueradeMessage {
-            name: name.to_string(),
-            avatar: avatar.to_string(),
+            name: Some(name.to_string()),
+            avatar: None,
         }).unwrap());
+        self
+    }
+
+    pub fn set_masquerade<F>(&mut self, f: F) -> &mut Self
+    where F: FnOnce(&mut MasqueradeMessage) -> &mut MasqueradeMessage {
+        let mut mm = MasqueradeMessage::default();
+        let masq = f(&mut mm);
+        self.0.insert("masquerade", serde_json::to_value(masq).unwrap());
         self
     }
 
@@ -100,6 +111,19 @@ impl CreateMessage {
         
         self
     }
+}
+
+impl MasqueradeMessage {
+    pub fn name<D: ToString>(&mut self, name: D) -> &mut Self {
+        self.name = Some(name.to_string());
+        self
+    }
+
+    pub fn avatar<D: ToString>(&mut self, avatar: D) -> &mut Self {
+        self.avatar = Some(avatar.to_string());
+        self
+    }
+
 }
 
 
@@ -154,7 +178,16 @@ impl Default for CreateEmbed {
     }
 }
 
-use std::error::Error as StdError;
+impl Default for MasqueradeMessage {
+    fn default() -> MasqueradeMessage {
+        MasqueradeMessage {
+            name: None,
+            avatar: None,
+        }
+    }
+}
+
+
 use std::result::Result as StdResult;
 
 pub type Result<T> = StdResult<T, serde_json::Error>;

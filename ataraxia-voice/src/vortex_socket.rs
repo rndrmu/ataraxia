@@ -18,6 +18,7 @@ pub struct VoiceClient {
     pub token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
+    #[allow(dead_code)]
     api_url: String,
     ata_socket: Arc<Option<Socket>>
 
