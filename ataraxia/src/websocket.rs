@@ -8,15 +8,15 @@ use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use crate::{models::message::Message as RevoltMessage, context::Context};
 
-#[derive(Clone)]
 
 pub struct Client {
     /// Your bot's Token
-    pub token: String,
+    pub(crate) token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
     #[allow(dead_code)]
-    api_url: String
+    api_url: String,
+    event_handler: Option<Arc<dyn EventHandler>>,
 }
 
 
@@ -24,8 +24,9 @@ pub struct Client {
 struct Socket {
     socket_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
-    handler: Arc<Box<dyn EventHandler>>
+    event_handler: Arc<dyn EventHandler>,
 }
+
 
 #[async_trait::async_trait]
 pub trait EventHandler: Send + Sync + 'static {
@@ -54,8 +55,14 @@ pub trait EventHandler: Send + Sync + 'static {
     async fn user_relationship(&self);*/
 }
 
+pub struct ClientBuilder {
+    token: String,
+    api_url: String,
+
+}
+
 impl Client {
-    pub async fn new(token: String,  api_url: Option<String>) -> Self {
+    pub fn new(token: String,  api_url: Option<String>) -> Self {
 
         let api_url = match api_url {
             Some(a) => a,
@@ -66,27 +73,39 @@ impl Client {
         Self {
             token,
             socket: None,
-            api_url
+            api_url,
+            event_handler: None
         }
     }
 
+    pub fn event_handler<H: EventHandler + 'static>(mut self, event_handler: H) -> Self {
+        self.event_handler = Some(Arc::new(event_handler));
 
-    pub async fn run<S>(&mut self, event_handler: S) where S: EventHandler + Send + Sync + 'static {
-        let websocket = Socket::new(Box::new(event_handler)).await;
+        self
+    }
+
+    pub async fn run<S>(&mut self){
+
+        let handler = match &self.event_handler {
+            Some(h) => h,
+            None => panic!("Expected Event Handler in initialisation!")
+        };
+
+        let websocket = Socket::new(handler.to_owned()).await;
         self.socket = Some(websocket);
         self.socket.as_mut().unwrap().connect(self.token.clone()).await;
     }
 }
 
 impl Socket {
-    pub async fn new(handler: Box<dyn EventHandler>) -> Socket {
+    pub async fn new(handler: Arc<dyn EventHandler>) -> Socket {
         let (ws_stream, _) = connect_async("wss://ws.revolt.chat").await.unwrap();
         let (writer, reader) = ws_stream.split();
 
         Socket {
             socket_writer: Arc::from(Mutex::new(writer)),
             socket_reader: Arc::from(Mutex::new(reader)),
-            handler: Arc::from(handler)
+            event_handler: handler
         }
     }
 
@@ -100,7 +119,7 @@ impl Socket {
         let handler_reader = Arc::clone(&self.socket_reader);
         let handler_writer = Arc::clone(&self.socket_writer);
         let arc_token = Arc::clone(&Arc::new(token.to_owned()));
-        let arc_handler = Arc::clone(&self.handler);
+        let arc_handler = Arc::clone(&self.event_handler);
 
         spawn(async move {
             crate::websocket::Socket::handler(handler_reader, handler_writer, arc_token, arc_handler).await;
@@ -114,7 +133,7 @@ impl Socket {
     pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         token: Arc<String>,
-        event: Arc<Box<dyn EventHandler>>)
+        event: Arc<dyn EventHandler>)
     {
             while let Some(message) = reader.lock().await.next().await {
                 match message {
