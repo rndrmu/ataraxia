@@ -99,12 +99,42 @@ impl Socket {
             "type": "RoomInfo"
         }).to_string())).await.unwrap();
 
-        self.socket_writer.lock().await.send(Message::Text(json!({"id":25,"type":"InitializeTransports","data":{"mode":"CombinedRTP","rtpCapabilities":{"codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],"headerExtensions":[{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},{"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
+        self.socket_writer.lock().await.send(Message::Text(json!(
+            {
+                "id":25,
+                "type":"InitializeTransports",
+                "data":{"mode":"CombinedRTP",
+                "rtpCapabilities":{
+                    "codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
+                    "headerExtensions":[
+                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
     ).to_string())).await.unwrap();
     
 
     self.socket_writer.lock().await.send(Message::Text(json!(
-        {"id":30,"type":"StartProduce","data":{"type":"audio","rtpParameters":{"codecs":[{"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],"headerExtensions":[{"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},{"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},{"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},{"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],"encodings":[{"ssrc":3082236920i64,"dtx":false}],"rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":true},"mid":"0"}}}
+        {
+            "id":30,
+            "type":"StartProduce",
+            "data":{
+                "type":"audio","rtpParameters":{
+                    "codecs":[
+                        {"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},
+                        "rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
+                        "headerExtensions":[
+                            {"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},
+                            {"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},
+                            {"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},
+                            {"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],
+                            "encodings":[{"ssrc":3082236920i64,"dtx":false}],
+                            "rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":false},
+                            "mid":"0"}}}
 ).to_string())).await.unwrap();
 
 println!("3 pew pew");
@@ -192,7 +222,11 @@ println!("3 pew pew");
                                     // Send Audio here
                                     println!("[VORTEX] Start Produce");
 
-                                    let ffmpeg = tokio::process::Command::new("ffmpeg")
+                                    // sleep for a bit to let the client connect
+                                    tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+                                    println!("[VORTEX] Sending Audio");
+
+                                    let ffmpeg = std::process::Command::new("ffmpeg")
                                         .arg("-i")
                                         .arg("/home/me/audio/meddl.webm")
                                         .arg("-f")
@@ -205,7 +239,7 @@ println!("3 pew pew");
                                         .arg("pcm_f32le")
                                         .arg("-")
                                         .output()
-                                        .await
+
                                         .expect("[CRITICAL] Failed to execute ffmpeg");
 
                                     // split 
@@ -216,20 +250,12 @@ println!("3 pew pew");
                                     const RTP_PACKET_SIZE: usize = 1200;
                                     let mut packet_chunks = packet.chunks(RTP_PACKET_SIZE);
 
-                                    let packet_to_send = packet_chunks.next().unwrap();
 
                                     while let Some(payload) = packet_chunks.next() {
-                                        println!("[VORTEX] Sending RTP Packet");
-                                        let rtp_packet = RtpPacketBuilder::new()
-                                        .payload(payload)
-                                        .payload_type(111)
-                                        .build();
 
-                                        if let Ok(rtp_packet) = rtp_packet {
-                                            self.udp_socket.lock().await.send(&rtp_packet).await.unwrap();
-                                        }
-                                        
+                                        self.udp_socket.lock().await.send(&payload).await.unwrap();
                                     }
+                                        
 
                                    /*  let result = RtpPacketBuilder::new()
                                         .payload_type(10)

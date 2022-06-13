@@ -22,6 +22,7 @@ impl EventHandler for Handler {
     async fn ready(&self, _ctx: Context) {
         println!("Ready!");
     }
+    
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
     /// 
     /// ### How to use Arguments
@@ -94,7 +95,7 @@ async fn main() {
     // which implements the EventHandler trait
     // and acts as "Event Loop" for the client
     // to use the default public instance of revolt, pass None as second parameter
-    // other wise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
+    // otherwise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
     let mut client = Client::new(token, None).await;
     client.run(Handler).await;
 
