@@ -3,11 +3,11 @@
 
 
 
-use std::{sync::{Arc}, ops::DerefMut};
+use std::{sync::{Arc}};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn, sync::Mutex, io::AsyncReadExt};
+use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use rtp_rs::*;
 
@@ -18,6 +18,7 @@ pub struct VoiceClient {
     pub token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
+    #[allow(dead_code)]
     api_url: String,
     ata_socket: Arc<Option<Socket>>
 
@@ -60,7 +61,7 @@ impl VoiceClient {
     }
 
 
-    pub async fn play_source(&mut self, source: &str) {
+    pub async fn play_source(&mut self, _source: &str) {
 
        
     }
@@ -130,8 +131,8 @@ println!("3 pew pew");
 
 
     pub async fn handler(&self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
-        writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
-        token: Arc<String>
+        _writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
+        _token: Arc<String>
     )
     {
             while let Some(message) = reader.lock().await.next().await {
@@ -140,7 +141,7 @@ println!("3 pew pew");
 
                         if message.is_text() {
                             let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
-                            let json_clone = json.clone();
+                            let _json_clone = json.clone();
                             
                             match json["type"].as_str() {                                
                                 Some("Authenticate") => {
@@ -193,7 +194,7 @@ println!("3 pew pew");
 
                                     let ffmpeg = tokio::process::Command::new("ffmpeg")
                                         .arg("-i")
-                                        .arg("D:/rust-stuff/opus-shit/")
+                                        .arg("/home/me/audio/meddl.webm")
                                         .arg("-f")
                                         .arg("s16le")
                                         .arg("-ac")
@@ -201,22 +202,43 @@ println!("3 pew pew");
                                         .arg("-ar")
                                         .arg("48000")
                                         .arg("-acodec")
-                                        .arg("pcm_s16le")
+                                        .arg("pcm_f32le")
                                         .arg("-")
                                         .output()
                                         .await
                                         .expect("[CRITICAL] Failed to execute ffmpeg");
 
+                                    // split 
 
-                                    let payload = ffmpeg.stdout;
-                                    let result = RtpPacketBuilder::new()
+                                    let packet = ffmpeg.stdout;
+
+                                    // split packet into chunks of RTP_PACKET_SIZE
+                                    const RTP_PACKET_SIZE: usize = 1200;
+                                    let mut packet_chunks = packet.chunks(RTP_PACKET_SIZE);
+
+                                    let packet_to_send = packet_chunks.next().unwrap();
+
+                                    while let Some(payload) = packet_chunks.next() {
+                                        println!("[VORTEX] Sending RTP Packet");
+                                        let rtp_packet = RtpPacketBuilder::new()
+                                        .payload(payload)
+                                        .payload_type(111)
+                                        .build();
+
+                                        if let Ok(rtp_packet) = rtp_packet {
+                                            self.udp_socket.lock().await.send(&rtp_packet).await.unwrap();
+                                        }
+                                        
+                                    }
+
+                                   /*  let result = RtpPacketBuilder::new()
                                         .payload_type(10)
-                                        .payload(&payload)
+                                        .payload(&packet_to_send)
                                         .build();
                                     if let Ok(packet) = result {
                                         println!("Packet: {:?}", packet);
                                         self.udp_socket.lock().await.send(&packet).await.unwrap();
-                                    }
+                                    } */
                                 }
 
                                 Some(&_) => {
