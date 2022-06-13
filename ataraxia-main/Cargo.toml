@@ -1,20 +1,14 @@
 [package]
 name = "ataraxia"
+authors = ["rndrmu"]
 version = "0.1.0"
 edition = "2021"
 repository = "https://github.com/rndrmu/ataraxia.git"
 homepage = "https://github.com/rndrmu/ataraxia"
-<<<<<<< HEAD:ataraxia/Cargo.toml
 license = "BSD-3-Clause"
 description = "A Rust Wrapper for the Revolt API"
 readme = "../README.md"
 keywords = ["revolt", "api"]
-=======
-license = "BSD-3"
-description = "A Rust Wrapper for the Revolt API"
-readme = "../README.md"
-keywords = ["discord", "api"]
->>>>>>> 0e91110 (Add Metadata to Cargo.toml):ataraxia-main/Cargo.toml
 publish = true
 
 [features]
