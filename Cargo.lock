@@ -1016,8 +1016,6 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
 name = "sharded-slab"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1027,7 +1025,6 @@ dependencies = [
 ]
 
 [[package]]
->>>>>>> 57232f940b690bebefa144b38b5a1d22c6aa9988
 name = "signal-hook-registry"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
