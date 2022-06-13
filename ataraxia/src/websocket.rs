@@ -15,7 +15,7 @@ pub struct Client {
     /// The actual Socket Connection
     socket: Option<Socket>,
     #[allow(dead_code)]
-    api_url: String,
+    api_url: Option<String>,
     event_handler: Option<Arc<dyn EventHandler>>,
 }
 
@@ -55,25 +55,15 @@ pub trait EventHandler: Send + Sync + 'static {
     async fn user_relationship(&self);*/
 }
 
-pub struct ClientBuilder {
-    token: String,
-    api_url: String,
 
-}
 
 impl Client {
-    pub fn new(token: String,  api_url: Option<String>) -> Self {
-
-        let api_url = match api_url {
-            Some(a) => a,
-            None => "https://api.revolt.chat/".to_owned()
-        };
-
+    pub fn new(token: String) -> Self {
 
         Self {
             token,
             socket: None,
-            api_url,
+            api_url: None,
             event_handler: None
         }
     }
@@ -84,7 +74,13 @@ impl Client {
         self
     }
 
-    pub async fn run<S>(&mut self){
+    pub fn set_api_url<D: ToString>(mut self, api_url: D) -> Self {
+        self.api_url = Some(api_url.to_string());
+
+        self
+    }
+
+    pub async fn start(&mut self){
 
         let handler = match &self.event_handler {
             Some(h) => h,
@@ -110,7 +106,7 @@ impl Socket {
     }
 
     pub async fn connect(&self, token: String) -> &Socket {
-        println!("Connecting...");
+        debug!("Connecting...");
         self.socket_writer.lock().await.send(Message::Text(json!({
             "type": "Authenticate",
             "token": token
