@@ -84,11 +84,10 @@ async fn main() {
     
     tracing_subscriber::fmt::init();
 
-
-
-
     let token = std::env::var("REVOLT_TOKEN").expect("token");
 
+
+    
 
     // Build the client and start it
     // Handler is the Handler Struct

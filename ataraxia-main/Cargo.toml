@@ -2,6 +2,13 @@
 name = "ataraxia"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/rndrmu/ataraxia.git"
+homepage = "https://github.com/rndrmu/ataraxia"
+license = "BSD-3"
+description = "A Rust Wrapper for the Revolt API"
+readme = "../README.md"
+keywords = ["discord", "api"]
+publish = true
 
 [features]
 voice = ["dep:ataraxia-voice"]
