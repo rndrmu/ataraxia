@@ -28,9 +28,21 @@ use super::models::channel::Channel as RevoltChannel;
 /// 
 /// ### To Send a Message
 /// ```no_run
-/// use ataraxia::context::Context;
-/// let ctx = Context::new("token", "{\"some\": \"json\"}");
+/// 
 /// ctx.reply("Hello World!");
+/// 
+/// // or; to construct a message 
+/// let msg = ctx.reply_builder("channel_id", |r| {
+///    r.content("Hello World!")
+///     .create_embed(|embed| {
+///        embed.title("Test Embed")
+///       .description("Ich bin nicht derjeniche!") 
+///     })
+///     .set_masquerade(|masquerade| {
+///       masquerade.name("Rainer Winkler")
+///    })
+/// 
+/// });
 /// ```
 /// 
 /// 

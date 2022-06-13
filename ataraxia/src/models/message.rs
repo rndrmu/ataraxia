@@ -68,9 +68,15 @@ pub struct CreateEmbed (
 );
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct MasqueradeMessage {
+struct MasqueradeMessage {
     pub name: Option<String>,
     pub avatar: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CreateMasqueradeMessage {
+    name: Option<String>,
+    avatar: Option<String>,
 }
 
 
@@ -95,8 +101,8 @@ impl CreateMessage {
     }
 
     pub fn set_masquerade<F>(&mut self, f: F) -> &mut Self
-    where F: FnOnce(&mut MasqueradeMessage) -> &mut MasqueradeMessage {
-        let mut mm = MasqueradeMessage::default();
+    where F: FnOnce(&mut CreateMasqueradeMessage) -> &mut CreateMasqueradeMessage {
+        let mut mm = CreateMasqueradeMessage::default();
         let masq = f(&mut mm);
         self.0.insert("masquerade", serde_json::to_value(masq).unwrap());
         self
@@ -113,7 +119,7 @@ impl CreateMessage {
     }
 }
 
-impl MasqueradeMessage {
+impl CreateMasqueradeMessage {
     pub fn name<D: ToString>(&mut self, name: D) -> &mut Self {
         self.name = Some(name.to_string());
         self
@@ -178,9 +184,9 @@ impl Default for CreateEmbed {
     }
 }
 
-impl Default for MasqueradeMessage {
-    fn default() -> MasqueradeMessage {
-        MasqueradeMessage {
+impl Default for CreateMasqueradeMessage {
+    fn default() -> CreateMasqueradeMessage {
+        CreateMasqueradeMessage {
             name: None,
             avatar: None,
         }

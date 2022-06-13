@@ -208,16 +208,37 @@ println!("3 pew pew");
                                         .await
                                         .expect("[CRITICAL] Failed to execute ffmpeg");
 
+                                    // split 
 
-                                    let payload = ffmpeg.stdout;
-                                    let result = RtpPacketBuilder::new()
+                                    let packet = ffmpeg.stdout;
+
+                                    // split packet into chunks of RTP_PACKET_SIZE
+                                    const RTP_PACKET_SIZE: usize = 1200;
+                                    let mut packet_chunks = packet.chunks(RTP_PACKET_SIZE);
+
+                                    let packet_to_send = packet_chunks.next().unwrap();
+
+                                    while let Some(payload) = packet_chunks.next() {
+                                        println!("[VORTEX] Sending RTP Packet");
+                                        let rtp_packet = RtpPacketBuilder::new()
+                                        .payload(payload)
+                                        .payload_type(111)
+                                        .build();
+
+                                        if let Ok(rtp_packet) = rtp_packet {
+                                            self.udp_socket.lock().await.send(&rtp_packet).await.unwrap();
+                                        }
+                                        
+                                    }
+
+                                   /*  let result = RtpPacketBuilder::new()
                                         .payload_type(10)
-                                        .payload(&payload)
+                                        .payload(&packet_to_send)
                                         .build();
                                     if let Ok(packet) = result {
                                         println!("Packet: {:?}", packet);
                                         self.udp_socket.lock().await.send(&packet).await.unwrap();
-                                    }
+                                    } */
                                 }
 
                                 Some(&_) => {
