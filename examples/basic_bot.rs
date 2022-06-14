@@ -38,7 +38,7 @@ impl EventHandler for Handler {
             ctx.reply_builder(&message.channel_id, |r| {
                 r.content("hello!")
                 .set_masquerade(|masquerade| {
-                    masquerade.name("Rainer Winkler").avatar("https://cdn.discordapp.com/avatars/242385294123335690/d0b2755d7113d0630a51ead93b4dfd67.png")
+                    masquerade.name("Rainer Winkler").avatar("https://i.imgflip.com/6bnywv.jpg")
                 })
                 .create_embed(|embed| {
                     embed.title("Test Embed")
@@ -52,7 +52,7 @@ impl EventHandler for Handler {
                     .description("Ich bin nicht derjeniche!")
                     .url("https://www.youtube.com/watch?v=FcSeR4fdqbs")
                     .colour("#00ffff")
-                    .icon_url("https://imgflip.com/meme/382391167/Rainer-Winkler-Br")
+                    .icon_url("https://i.imgflip.com/6bnywv.jpg")
                 })
             }).await
 
