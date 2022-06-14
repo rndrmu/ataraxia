@@ -13,5 +13,10 @@ pub mod http;
 pub mod models;
 pub mod context;
 
+/// Re-exports the `async_trait` crate. 
+/// 
+/// Used in Bots to implement the [`EventHandler`] trait.
+/// 
+/// [`EventHandler`]: crate::websocket::EventHandler
 pub use async_trait::async_trait;
 
