@@ -19,9 +19,9 @@ impl EventHandler for Handler {
         println!("Authenticated!");
     }
     /// Function called when the client is ready to receive events
-    async fn ready(&self, _ctx: Context, ready: serde_json::Value) {
+    async fn ready(&self, _ctx: Context, ready: Ready) {
         println!("Ready!");
-        println!("Received Payload {:?}", ready);
+        println!("{} is connected!", ready.users[0].username);
     }
 
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function

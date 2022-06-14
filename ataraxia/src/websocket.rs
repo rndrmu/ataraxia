@@ -3,7 +3,7 @@ use std::{sync::{Arc}};
 use tracing::{debug, info, error};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
-use serde_json::json;
+use serde_json::{json, de::Read};
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 use crate::{models::{message::Message as RevoltMessage, ServerConfig, ready::Ready}, context::Context, http::Http};
@@ -33,7 +33,7 @@ struct Socket {
 pub trait EventHandler: Send + Sync + 'static {
     /*async fn error(&self);*/
     async fn authenticated(&self);
-    async fn ready(&self, context: Context, ready: serde_json::Value);
+    async fn ready(&self, context: Context, ready: Ready);
     async fn on_message(&self, context: Context, message: RevoltMessage);
     /*async fn message_update(&self);
     async fn message_delete(&self);
@@ -155,7 +155,7 @@ impl Socket {
                             match json["type"].as_str() {
                                 Some("Ready") => {
                                     let ready: Ready = serde_json::from_value(json).unwrap();
-                                    event.ready(Context::new(&token, &message.to_string()), json_clone).await;
+                                    event.ready(Context::new(&token, &message.to_string()), ready).await;
 
                                     
                                 },
