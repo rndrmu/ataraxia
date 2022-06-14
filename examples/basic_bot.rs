@@ -5,7 +5,7 @@ use tokio;
 
 use ataraxia::{
     websocket::{Client, EventHandler},
-    models::message::Message as RevoltMessage,
+    models::{message::Message as RevoltMessage, ready::Ready},
     context::Context,
     async_trait
 };
@@ -19,8 +19,9 @@ impl EventHandler for Handler {
         println!("Authenticated!");
     }
     /// Function called when the client is ready to receive events
-    async fn ready(&self, _ctx: Context) {
+    async fn ready(&self, _ctx: Context, ready: serde_json::Value) {
         println!("Ready!");
+        println!("Received Payload {:?}", ready);
     }
 
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
@@ -98,10 +99,13 @@ async fn main() {
     // otherwise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
     let mut client = Client::new(token)
     .event_handler(Handler)
-    .set_api_url("https://api.revolt.chat");
+    .set_api_url("https://api.revolt.chat")
+    .await;
 
 
     client.start().await;
+
+
 
 
 

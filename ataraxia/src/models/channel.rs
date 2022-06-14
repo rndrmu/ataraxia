@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 
@@ -18,6 +20,11 @@ pub struct Channel {
     pub name: String,
     pub description: Option<String>,
     pub icon: Option<ChannelIcon>,
+    pub default_permissions: Option<ChannelDefaultPermissions>,
+    pub last_message_id: Option<String>,
+    pub nsfw: Option<bool>,
+    #[serde(flatten)]
+    pub role_permissions: Option<HashMap<String, ChannelDefaultPermissions>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -29,12 +36,8 @@ pub struct ChannelIcon {
     pub metadata: ChannelIconMetadata,
     pub content_type: String,
     pub size: i32,
-    pub deleted: bool,
-    pub reported: bool,
-    pub message_id: String,
-    pub user_id: String,
-    pub server_id: String,
-    pub object_id: String,
+    pub deleted: Option<bool>,
+    pub reported: Option<bool>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -42,3 +45,12 @@ pub struct ChannelIconMetadata {
     #[serde(rename = "type")]
     pub file_type: String,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ChannelDefaultPermissions {
+    #[serde(rename = "a")]
+    pub allow: i32,
+    #[serde(rename = "d")]
+    pub deny: i32,
+}
+

@@ -1,5 +1,7 @@
 use reqwest::Client;
 
+use crate::models::ServerConfig;
+
 
 
 
@@ -83,4 +85,16 @@ impl Http
 
         res.map(|_| ())
     }
+
+    pub async fn get_server_config(token: &str) -> Result<ServerConfig, reqwest::Error> {
+        let client = Client::new();
+        let res = client.get(format!("{}", API_BASE_URL))
+        .header("x-bot-token", format!("{token}", token = token))
+        .send()
+        .await?
+        .json::<ServerConfig>().await?;
+
+        Ok(res)
+    }
+
 }

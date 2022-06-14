@@ -6,9 +6,9 @@ use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use crate::{models::message::Message as RevoltMessage, context::Context};
+use crate::{models::{message::Message as RevoltMessage, ServerConfig, ready::Ready}, context::Context, http::Http};
 
-
+#[derive(Clone)]
 pub struct Client {
     /// Your bot's Token
     pub(crate) token: String,
@@ -16,7 +16,8 @@ pub struct Client {
     socket: Option<Socket>,
     #[allow(dead_code)]
     api_url: Option<String>,
-    event_handler: Option<Arc<dyn EventHandler>>,
+    socket_url: Option<String>,
+    event_handler: Option<Arc<dyn EventHandler>>
 }
 
 
@@ -32,7 +33,7 @@ struct Socket {
 pub trait EventHandler: Send + Sync + 'static {
     /*async fn error(&self);*/
     async fn authenticated(&self);
-    async fn ready(&self, context: Context);
+    async fn ready(&self, context: Context, ready: serde_json::Value);
     async fn on_message(&self, context: Context, message: RevoltMessage);
     /*async fn message_update(&self);
     async fn message_delete(&self);
@@ -64,6 +65,7 @@ impl Client {
             token,
             socket: None,
             api_url: None,
+            socket_url: None,
             event_handler: None
         }
     }
@@ -74,28 +76,39 @@ impl Client {
         self
     }
 
-    pub fn set_api_url<D: ToString>(mut self, api_url: D) -> Self {
+    pub async fn set_api_url<D: ToString>(mut self, api_url: D) -> Self {
         self.api_url = Some(api_url.to_string());
+
+        // get socket url from Http
+        let server_config = Http::get_server_config(&self.token).await.unwrap();
+
+        // set socket url
+        self.socket_url = Some(server_config.websocket_url);
 
         self
     }
 
-    pub async fn start(&mut self){
+    pub async fn start(&mut self) {
 
         let handler = match &self.event_handler {
             Some(h) => h,
             None => panic!("Expected Event Handler in initialisation!")
         };
 
-        let websocket = Socket::new(handler.to_owned()).await;
+        let socket_url = match self.socket_url.clone() {
+            Some(url) => url,
+            None => "wss://ws.revolt.chat".to_owned()
+        };
+
+        let websocket = Socket::new(socket_url ,handler.to_owned()).await;
         self.socket = Some(websocket);
         self.socket.as_mut().unwrap().connect(self.token.clone()).await;
     }
 }
 
 impl Socket {
-    pub async fn new(handler: Arc<dyn EventHandler>) -> Socket {
-        let (ws_stream, _) = connect_async("wss://ws.revolt.chat").await.unwrap();
+    pub async fn new(socket_url: String ,handler: Arc<dyn EventHandler>) -> Socket {
+        let (ws_stream, _) = connect_async(socket_url).await.unwrap();
         let (writer, reader) = ws_stream.split();
 
         Socket {
@@ -141,8 +154,8 @@ impl Socket {
                             
                             match json["type"].as_str() {
                                 Some("Ready") => {
-                                    debug!("{}", json);
-                                    event.ready(Context::new(&token, &message.to_string())).await;
+                                    let ready: Ready = serde_json::from_value(json).unwrap();
+                                    event.ready(Context::new(&token, &message.to_string()), json_clone).await;
 
                                     
                                 },
