@@ -2,14 +2,16 @@ use std::collections::HashMap;
 
 
 use serde::{Serialize, Deserialize};
-use super::{channel::{Channel, ChannelIconMetadata, ChannelType, ChannelIcon, ChannelDefaultPermissions}, member::{Member}, server::{Server, SystemMessages}};
+use super::{channel::{Channel, ChannelIconMetadata, ChannelType, ChannelIcon, ChannelDefaultPermissions}};
 
 /// The Payload, received from the READY event
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Ready {
-    pub channels: Vec<serde_json::Value>,
-    pub members: Vec<serde_json::Value>,
-    pub servers: Vec<serde_json::Value>,
+    pub channels: Vec<serde_json::Value>, // we do
+    pub members: Vec<serde_json::Value>,  // a little
+    // TODO: Actually model this,
+    // we need all those for caching
+    pub servers: Vec<serde_json::Value>,  // trolling 
     #[serde(rename = "type")]
     pub event_type: String,
     pub users: Vec<ReadyUsers>,

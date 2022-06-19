@@ -11,6 +11,8 @@ use crate::{models::{message::Message as RevoltMessage, ServerConfig, ready::Rea
 #[derive(Clone)]
 pub struct Client {
     /// Your bot's Token
+    /// 
+    /// pub, because - well its set by the user 
     pub(crate) token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
