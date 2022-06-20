@@ -228,7 +228,7 @@ println!("3 pew pew");
 
                                     let ffmpeg = std::process::Command::new("ffmpeg")
                                         .arg("-i")
-                                        .arg("/home/me/audio/meddl.webm")
+                                        .arg("/home/me/audio/meddl.mp3")
                                         .arg("-f")
                                         .arg("s16le")
                                         .arg("-ac")
