@@ -31,20 +31,5 @@ version = "1"
 default-features = true
 features = ["fs", "macros", "rt-multi-thread", "io-util", "process"]
 
-[dependencies.audiopus]
-version = "0.3.0-rc.0"
-
-[dependencies.symphonia]
-version = "0.5"
-git = "https://github.com/pdeljanov/Symphonia"
-branch = "master"
-
-[dependencies.symphonia-core]
-version = "0.5"
-git = "https://github.com/pdeljanov/Symphonia"
-branch = "master"
-
-[dependencies.symphonia-bundle-mp3]
-version = "0.5"
-git = "https://github.com/pdeljanov/Symphonia"
-branch = "master"
+[dependencies.opus]
+version = "0.3.0"

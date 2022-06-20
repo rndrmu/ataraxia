@@ -11,6 +11,8 @@ use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
 
+use crate::FRAME_LENGTH;
+
 #[derive(Clone)]
 
 pub struct VoiceClient {
@@ -236,7 +238,7 @@ println!("3 pew pew");
                                         .arg("-ar")
                                         .arg("48000")
                                         .arg("-acodec")
-                                        .arg("pcm_f32le")
+                                        .arg("pcm_s16le")
                                         .arg("-")
                                         .output()
 
@@ -246,17 +248,22 @@ println!("3 pew pew");
 
                                     let packet = ffmpeg.stdout;
 
-                                    let opus_packet = super::encode_to_opus(&packet).unwrap(); // fuck it, we panicking on err
-                                        
 
-                                    let result = RtpPacketBuilder::new()
-                                        .payload_type(10)
-                                        .payload(&opus_packet)
-                                        .build();
-                                    if let Ok(packet) = result {
-                                        println!("Packet: {:?}", packet);
-                                        self.udp_socket.lock().await.send(&packet).await.unwrap();
+
+                                   let opus = super::encode_to_opus(packet);
+
+                                let opus_paket =  match opus {
+                                    Ok(opus) => opus,
+                                    Err(e) => {
+                                        println!("[CRITICAL] Failed to encode to opus: {}", e);
+                                        return;
                                     }
+                                };
+
+                                println!("{:?}", opus_paket)
+                                    
+
+                                   
                                 }
 
                                 Some(&_) => {

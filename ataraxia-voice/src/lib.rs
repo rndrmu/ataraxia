@@ -1,5 +1,6 @@
-use audiopus;
-use byteorder::{BigEndian, ReadBytesExt}; // 1.2.7
+use opus;
+use std::{process::Command, fmt::format};
+use std::io::{Read, Write};
 
 pub mod vortex_socket;
 
@@ -10,20 +11,23 @@ pub const CHANNELS: usize = 2;
 pub const FRAME_SIZE: usize = SAMPLE_RATE * 2 / 60;
 pub const FRAME_LENGTH: usize = 20; // in milliseconds
 pub const SAMPLES_PER_FRAME: usize = SAMPLE_RATE / 1000 * FRAME_LENGTH;
+pub const MAX_PACKET_SIZE: usize = FRAME_SIZE * 8;
+
+/// Split the input data into packets of size `MAX_PACKET_SIZE
 
 
-pub fn encode_to_opus(data: &[u8]) -> Result<Vec<u8>, audiopus::Error> {
+pub fn encode_to_opus(data: Vec<u8>) -> Result<Vec<u8>, opus::Error> {
     let mut output: Vec<u8> = Vec::new();
     // convert data to a [i16] array so we can use audiopus' encoder
-    let mut input: Vec<i16> = Vec::new();
-    for i in 0..data.len() {
-        input.push(data[i] as i16);
-    }
+    let input: Vec<i16> = data.chunks_exact(2).into_iter().map(|a| i16::from_ne_bytes([a[0], a[1]])).collect();
 
-    let encoder = audiopus::coder::Encoder::new(audiopus::SampleRate::Hz48000, audiopus::Channels::Stereo, audiopus::Application::Voip)?;
+    let mut encoder = opus::Encoder::new(SAMPLE_RATE as u32, opus::Channels::Stereo, opus::Application::Voip)?;
 
     // We'll ignore the output and bubble the error up.
-    let _ = audiopus::coder::Encoder::encode(&encoder, &input, &mut output)?;
+    let res = encoder.encode_vec(&input, MAX_PACKET_SIZE)?;
 
-    Ok(output)
+
+
+    Ok(res)
+
 }
