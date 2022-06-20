@@ -11,6 +11,7 @@ pub struct Ready {
     pub members: Vec<serde_json::Value>,  // a little
     // TODO: Actually model this,
     // we need all those for caching
+    // Plus, serde_json::Value is an expensive operation
     pub servers: Vec<serde_json::Value>,  // trolling 
     #[serde(rename = "type")]
     pub event_type: String,
