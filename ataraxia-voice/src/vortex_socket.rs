@@ -246,25 +246,17 @@ println!("3 pew pew");
 
                                     let packet = ffmpeg.stdout;
 
-                                    // split packet into chunks of RTP_PACKET_SIZE
-                                    const RTP_PACKET_SIZE: usize = 1200;
-                                    let mut packet_chunks = packet.chunks(RTP_PACKET_SIZE);
-
-
-                                    while let Some(payload) = packet_chunks.next() {
-
-                                        self.udp_socket.lock().await.send(&payload).await.unwrap();
-                                    }
+                                    let opus_packet = super::encode_to_opus(&packet).unwrap(); // fuck it, we panicking on err
                                         
 
-                                   /*  let result = RtpPacketBuilder::new()
+                                    let result = RtpPacketBuilder::new()
                                         .payload_type(10)
-                                        .payload(&packet_to_send)
+                                        .payload(&opus_packet)
                                         .build();
                                     if let Ok(packet) = result {
                                         println!("Packet: {:?}", packet);
                                         self.udp_socket.lock().await.send(&packet).await.unwrap();
-                                    } */
+                                    }
                                 }
 
                                 Some(&_) => {
