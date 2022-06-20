@@ -25,6 +25,11 @@ async-trait = "0.1.51"
 rtp-rs = "0.6.0"
 byteorder = "1.4.3"
 
+[dependencies.tokio]
+version = "1"
+default-features = true
+features = ["fs", "macros", "rt-multi-thread", "io-util", "process"]
+
 [dependencies.audiopus]
 optional = true
 version = "0.3.0-rc.0"
