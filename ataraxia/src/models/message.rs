@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use serde_json::Value;
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-    pub _id: String,
-    pub author: String,
+    #[serde(rename = "_id")]
+    pub id: MessageId,
+    pub author: UserId,
     #[serde(rename = "channel")]
     pub channel_id: String,
     pub content: String,
@@ -38,9 +39,9 @@ pub struct MessageMetadata {
 impl std::fmt::Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.content.is_empty() {
-            write!(f, "Channel: {}, Author: {}", self.channel_id, self.author)
+            write!(f, "Channel: {}, Author: {:?}", self.channel_id, self.author)
         } else {
-            write!(f, "Channel: {}, Author: {}, Content: {}", self.channel_id, self.author, self.content)
+            write!(f, "Channel: {}, Author: {:?}, Content: {}", self.channel_id, self.author, self.content)
         }
     }
 }
@@ -79,6 +80,27 @@ pub struct CreateMasqueradeMessage {
     avatar: Option<String>,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct UserId (
+    pub String
+);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct MessageId (
+    pub String
+);
+
+pub struct User {
+    pub id: UserId,
+    pub name: String,
+    pub avatar: String,
+}
+
+impl UserId {
+    pub async fn get_author(http: Http) -> Result<User> {
+        unimplemented!()
+    }
+}
 
 
 impl CreateMessage {
@@ -195,6 +217,8 @@ impl Default for CreateMasqueradeMessage {
 
 
 use std::result::Result as StdResult;
+
+use crate::http::Http;
 
 pub type Result<T> = StdResult<T, serde_json::Error>;
 pub type JsonMap = serde_json::Map<String, Value>;

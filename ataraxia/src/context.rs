@@ -92,7 +92,7 @@ impl Context {
             .body(json!({
                 "content": message,
                 "replies": [{
-                    "id": json._id,
+                    "id": json.id.0,
                     // setting mention to true here somehow leads to the server never sending a response back? 
                     "mention": false,
                 }],
