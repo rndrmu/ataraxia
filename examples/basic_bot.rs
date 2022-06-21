@@ -34,7 +34,6 @@ impl EventHandler for Handler {
 
         if message.content == "!ping" {
 
-
             ctx.reply_builder(&message.channel_id, |r| {
                 r.content("hello!")
                 .set_masquerade(|masquerade| {
