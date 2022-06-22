@@ -82,7 +82,7 @@ impl Client {
         self.api_url = Some(api_url.to_string());
 
         // get socket url from Http
-        let server_config = Http::get_server_config(&self.token).await.unwrap();
+        let server_config = Http::new().get_server_config().await.unwrap();
 
         // set socket url
         self.socket_url = Some(server_config.websocket_url);

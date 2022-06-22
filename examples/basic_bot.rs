@@ -34,7 +34,7 @@ impl EventHandler for Handler {
 
         if message.content == "!ping" {
 
-            ctx.reply_builder(&message.channel_id, |r| {
+            let msg = message.channel_id.send_message(ctx.http, |r| {
                 r.content("hello!")
                 .set_masquerade(|masquerade| {
                     masquerade.name("Rainer Winkler").avatar("https://i.imgflip.com/6bnywv.jpg")
@@ -53,7 +53,9 @@ impl EventHandler for Handler {
                     .colour("#00ffff")
                     .icon_url("https://i.imgflip.com/6bnywv.jpg")
                 })
-            }).await
+            }).await.map_err(|e| println!("{}", e)).unwrap();
+
+            println!("Sent Message with Content '{}' Successfully!", msg.content);
 
 
         } else if message.content.starts_with("!join") {
@@ -66,7 +68,7 @@ impl EventHandler for Handler {
 
 
         } else if message.content == "!channelinfo" {
-            let chn = ctx.get_channel(&message.channel_id).await.unwrap();
+            let chn = ctx.get_channel(&message.channel_id.0).await.unwrap();
             println!("{:?}", chn);
         }
     }

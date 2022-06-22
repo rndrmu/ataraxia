@@ -107,6 +107,31 @@ impl UserId {
     }
 }
 
+impl ChannelId {
+    pub async fn send_message<F>(&self, http: Http, f: F) -> StdResult<Message, reqwest::Error>
+    where
+        F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
+    {
+        let mut message = CreateMessage::default();
+        f(&mut message);
+
+        let json = to_value(message).unwrap(); // this should never fail :^) 
+
+        let url = format!("https://api.revolt.chat/channels/{}/messages", self.0);
+
+        let res = http.client.post(&url)
+            .header("x-bot-token", http.token.unwrap())
+            .json(&json)
+            .send()
+            .await?
+            .json::<Message>()
+            .await?;
+
+        Ok(res)
+
+    }
+}
+
 
 impl CreateMessage {
      /// Set the content of the message.

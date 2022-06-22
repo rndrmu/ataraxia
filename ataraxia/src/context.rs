@@ -69,7 +69,7 @@ impl Context {
     {
         Context  {
             token: token.to_owned(),
-            http: Http,
+            http: Http::new_with_token(&token),
             json: serde_json::from_str(json).unwrap(),
         }
     }
@@ -85,7 +85,7 @@ impl Context {
             
 
             reqwest::Client::new().post(
-                format!("https://api.revolt.chat/channels/{}/messages", json.channel_id).as_str(),
+                format!("https://api.revolt.chat/channels/{}/messages", json.channel_id.0).as_str(),
             )
             .header("x-bot-token", self.token.clone())
             .header("content-type", "application/json")
