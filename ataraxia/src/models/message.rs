@@ -1,7 +1,11 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use serde_json::Value;
-use super::user::User;
+use super::id::{
+    UserId,
+    ChannelId,
+    MessageId,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
@@ -82,61 +86,7 @@ pub struct CreateMasqueradeMessage {
     avatar: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct UserId (
-    pub String
-);
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct MessageId (
-    pub String
-);
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ChannelId (
-    pub String
-);
-
-
-impl UserId {
-    pub async fn get_author_user(&self, http: Http) -> StdResult<User, reqwest::Error> {
-        let url = format!("{}/users/{}", API_BASE_URL, self.0);
-
-        let res = http.client.get(url)
-        .header("x-bot-token", &http.token.unwrap())
-        .send()
-        .await?
-        .json::<super::user::User>().await?;
-
-
-        Ok(res)
-    }
-}
-
-impl ChannelId {
-    pub async fn send_message<F>(&self, http: Http, f: F) -> StdResult<Message, reqwest::Error>
-    where
-        F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
-    {
-        let mut message = CreateMessage::default();
-        f(&mut message);
-
-        let json = to_value(message).unwrap(); // this should never fail :^) 
-
-        let url = format!("https://api.revolt.chat/channels/{}/messages", self.0);
-
-        let res = http.client.post(&url)
-            .header("x-bot-token", http.token.unwrap())
-            .json(&json)
-            .send()
-            .await?
-            .json::<Message>()
-            .await?;
-
-        Ok(res)
-
-    }
-}
 
 
 impl CreateMessage {
@@ -252,13 +202,11 @@ impl Default for CreateMasqueradeMessage {
 }
 
 
-use std::result::Result as StdResult;
-
-use crate::http::{Http, API_BASE_URL};
 
 
 
-pub type Result<T> = StdResult<T, serde_json::Error>;
+
+pub type Result<T> = std::result::Result<T, serde_json::Error>;
 pub type JsonMap = serde_json::Map<String, Value>;
 
 // null value 

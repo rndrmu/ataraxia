@@ -1,6 +1,7 @@
 use reqwest::Client;
 
-use crate::models::{ServerConfig, user::User, message::UserId};
+use crate::models::{user::User, message::UserId};
+use super::models::server::ServerConfig;
 
 use std::sync::Arc;
 
@@ -29,6 +30,9 @@ impl Http
         }
     }
 
+    /// Instantiates a new Http Client without a token.
+    /// 
+    /// Useful if you want to get the server config.
     pub fn new() -> Self {
         let client = reqwest::Client::new();
 
@@ -37,7 +41,6 @@ impl Http
             token: None,
         }
     }
-
 
     pub async fn get_server_config(&self) -> Result<ServerConfig, reqwest::Error> {
         let res = self.client.get(format!("{}", API_BASE_URL))

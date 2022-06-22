@@ -21,7 +21,7 @@ impl EventHandler for Handler {
     /// Function called when the client is ready to receive events
     async fn ready(&self, _ctx: Context, ready: Ready) {
         println!("Ready!");
-        println!("{} is connected!", ready.users[0].username);
+        println!("{:?} is connected!", ready.users.iter().map(|u| &u.username).collect::<Vec<_>>());
     }
 
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
@@ -53,9 +53,9 @@ impl EventHandler for Handler {
                     .colour("#00ffff")
                     .icon_url("https://i.imgflip.com/6bnywv.jpg")
                 })
-            }).await.map_err(|e| println!("{}", e)).unwrap();
+            }).await.map_err(|e| println!("{}", e));
 
-            println!("Sent Message with Content '{}' Successfully!", msg.content);
+            println!("Sent Message with Content '{:?}' Successfully!", msg);
 
 
         } else if message.content.starts_with("!join") {
@@ -70,6 +70,12 @@ impl EventHandler for Handler {
         } else if message.content == "!channelinfo" {
             let chn = ctx.get_channel(&message.channel_id.0).await.unwrap();
             println!("{:?}", chn);
+        } else if message.content == "!me" {
+            let user = message.author.get_author_user(&ctx.http).await.unwrap();
+
+            ctx.reply(&format!("{:?}", user)).await;
+
+            println!("{:?}", user);
         }
     }
 }
