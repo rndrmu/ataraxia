@@ -7,7 +7,7 @@ pub struct Message {
     pub id: MessageId,
     pub author: UserId,
     #[serde(rename = "channel")]
-    pub channel_id: String,
+    pub channel_id: ChannelId,
     pub content: String,
     pub nonce: String,
     pub mentions: Option<Vec<String>>,
@@ -87,6 +87,11 @@ pub struct UserId (
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct MessageId (
+    pub String
+);
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChannelId (
     pub String
 );
 
