@@ -3,10 +3,10 @@ use std::{sync::{Arc}};
 use tracing::{debug, info, error};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
-use serde_json::{json, de::Read};
+use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use crate::{models::{message::Message as RevoltMessage, ServerConfig, ready::Ready}, context::Context, http::Http};
+use crate::{models::{message::Message as RevoltMessage, ready::Ready}, context::Context, http::Http};
 
 #[derive(Clone)]
 pub struct Client {

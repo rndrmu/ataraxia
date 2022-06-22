@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use reqwest::Client;
 
 use crate::models::{ServerConfig, user::User, message::UserId};
@@ -42,7 +40,6 @@ impl Http
 
 
     pub async fn get_server_config(&self) -> Result<ServerConfig, reqwest::Error> {
-        let client = Client::new();
         let res = self.client.get(format!("{}", API_BASE_URL))
         .send()
         .await?

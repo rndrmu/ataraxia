@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use serde_json::Value;
+use super::user::User;
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
     #[serde(rename = "_id")]
@@ -95,15 +97,19 @@ pub struct ChannelId (
     pub String
 );
 
-pub struct User {
-    pub id: UserId,
-    pub name: String,
-    pub avatar: String,
-}
 
 impl UserId {
-    pub async fn get_author(http: Http) -> Result<User> {
-        unimplemented!()
+    pub async fn get_author_user(&self, http: Http) -> StdResult<User, reqwest::Error> {
+        let url = format!("{}/users/{}", API_BASE_URL, self.0);
+
+        let res = http.client.get(url)
+        .header("x-bot-token", &http.token.unwrap())
+        .send()
+        .await?
+        .json::<super::user::User>().await?;
+
+
+        Ok(res)
     }
 }
 
@@ -248,7 +254,9 @@ impl Default for CreateMasqueradeMessage {
 
 use std::result::Result as StdResult;
 
-use crate::http::Http;
+use crate::http::{Http, API_BASE_URL};
+
+
 
 pub type Result<T> = StdResult<T, serde_json::Error>;
 pub type JsonMap = serde_json::Map<String, Value>;

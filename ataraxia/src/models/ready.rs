@@ -1,8 +1,5 @@
-use std::collections::HashMap;
-
-
 use serde::{Serialize, Deserialize};
-use super::{channel::{Channel, ChannelIconMetadata, ChannelType, ChannelIcon, ChannelDefaultPermissions}};
+use super::{channel::{ChannelIconMetadata, ChannelType, ChannelIcon, ChannelDefaultPermissions}};
 
 /// The Payload, received from the READY event
 #[derive(Debug, Serialize, Deserialize, Clone)]
