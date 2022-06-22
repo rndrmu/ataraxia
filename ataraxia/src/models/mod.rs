@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub mod message;
 pub mod channel;
 pub mod ready;
+pub mod user;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ServerConfig {
