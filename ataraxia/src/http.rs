@@ -1,6 +1,6 @@
 use reqwest::Client;
 
-use crate::models::{user::User, message::UserId};
+use crate::models::{user::User, id::UserId};
 use super::models::server::ServerConfig;
 
 use std::sync::Arc;
