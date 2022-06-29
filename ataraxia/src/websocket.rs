@@ -34,8 +34,16 @@ struct Socket {
 #[async_trait::async_trait]
 pub trait EventHandler: Send + Sync + 'static {
     /*async fn error(&self);*/
+    /// Dispatched upon a successful connection to the Revolt Api.
     async fn authenticated(&self);
+
+    /// Dispatched once the Client has been authenticated and the Socket has been connected.
+    ///
+    /// A `Ready` Payload is passed to this method, containing all users, channels and servers the
+    /// bot is in.
     async fn ready(&self, context: Context, ready: Ready);
+
+    /// Dispatched when a message is received.
     async fn on_message(&self, context: Context, message: RevoltMessage);
     /*async fn message_update(&self);
     async fn message_delete(&self);

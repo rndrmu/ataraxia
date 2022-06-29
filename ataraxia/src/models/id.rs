@@ -20,11 +20,11 @@ pub struct ChannelId (
 );
 
 impl UserId {
-    pub async fn get_author_user(&self, http: Http) -> Result<User, reqwest::Error> {
+    pub async fn get_author_user(&self, http: &Http) -> Result<User, reqwest::Error> {
         let url = format!("{}/users/{}", API_BASE_URL, self.0);
 
         let res = http.client.get(url)
-        .header("x-bot-token", &http.token.unwrap())
+        .header("x-bot-token", http.token.as_ref().unwrap())
         .send()
         .await?
         .json::<super::user::User>().await?;

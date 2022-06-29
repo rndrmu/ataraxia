@@ -53,6 +53,9 @@ impl EventHandler for Handler {
                     .colour("#00ffff")
                     .icon_url("https://i.imgflip.com/6bnywv.jpg")
                 })
+                .create_embed(|e| {
+                    e.title("Test")
+                })
             }).await.map_err(|e| println!("{}", e));
 
             println!("Sent Message with Content '{:?}' Successfully!", msg);
