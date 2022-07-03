@@ -1,6 +1,8 @@
 
 
 
+use std::sync::Arc;
+
 use tokio;
 
 use ataraxia::{
@@ -34,7 +36,7 @@ impl EventHandler for Handler {
 
         if message.content == "!ping" {
 
-            let msg = message.channel_id.send_message(ctx.http, |r| {
+            let msg = message.channel_id.send_message(&ctx.http, |r| {
                 r.content("hello!")
                 .set_masquerade(|masquerade| {
                     masquerade.name("Rainer Winkler").avatar("https://i.imgflip.com/6bnywv.jpg")
@@ -59,6 +61,25 @@ impl EventHandler for Handler {
             }).await.map_err(|e| println!("{}", e));
 
             println!("Sent Message with Content '{:?}' Successfully!", msg);
+
+            // sleep 5s 
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            match msg {
+                Ok(msg) => {
+                   let edited = msg.edit(&ctx.http, |f| {
+                        f.content("hello again!")
+                        .create_embed(|f| {
+                            f.title(":trol:")
+                            .url("https://i.redd.it/ztfffav639991.jpg")
+                        })
+                   }).await;
+                   println!("Edited Message with Content '{:?}' Successfully!", edited);
+                },
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                }
+            }
 
 
         } else if message.content.starts_with("!join") {

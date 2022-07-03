@@ -1,6 +1,9 @@
+use reqwest::Result as HTTPResult;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use serde_json::Value;
+use crate::http::{Http, API_BASE_URL};
+
 use super::id::{
     UserId,
     ChannelId,
@@ -226,4 +229,31 @@ where
     T: Serialize,
 {
     Ok(serde_json::to_value(value)?)
+}
+
+impl Message {
+
+    /// Edits a given Message, preserving all non-specified fields.
+    pub async fn edit<F>(&self, http: &Http, f: F) -> HTTPResult<Message>
+    where
+        F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
+    {
+        let mut message = CreateMessage::default();
+        f(&mut message);
+
+        let json = to_value(message).unwrap(); // this should never fail :^) 
+
+        let url = format!("{}/channels/{}/messages/{}", API_BASE_URL, self.channel_id.0, self.id.0);
+
+        let res = http.client.patch(&url)
+            .header("x-bot-token", http.token.as_ref().unwrap())
+            .json(&json)
+            .send()
+            .await?
+            .json::<Message>()
+            .await?;
+
+        Ok(res)
+
+    }
 }

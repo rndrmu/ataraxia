@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use super::id::ChannelId;
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
@@ -15,7 +17,7 @@ pub enum ChannelType {
 pub struct Channel {
     pub channel_type: ChannelType,
     #[serde(rename = "_id")]
-    pub channel_id : String,
+    pub channel_id: ChannelId,
     pub server: String,
     pub name: String,
     pub description: Option<String>,

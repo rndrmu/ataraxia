@@ -14,7 +14,7 @@ pub struct MessageId (
     pub String
 );
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ChannelId (
     pub String
 );
@@ -35,7 +35,7 @@ impl UserId {
 }
 
 impl ChannelId {
-    pub async fn send_message<F>(&self, http: Http, f: F) -> Result<Message, reqwest::Error>
+    pub async fn send_message<F>(&self, http: &Http, f: F) -> Result<Message, reqwest::Error>
     where
         F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
     {
@@ -47,7 +47,7 @@ impl ChannelId {
         let url = format!("https://api.revolt.chat/channels/{}/messages", self.0);
 
         let res = http.client.post(&url)
-            .header("x-bot-token", http.token.unwrap())
+            .header("x-bot-token", http.token.as_ref().unwrap())
             .json(&json)
             .send()
             .await?
@@ -57,4 +57,20 @@ impl ChannelId {
         Ok(res)
 
     }
+}
+
+impl MessageId {
+    pub async fn get_message(&self, http: &Http) -> Result<Message, reqwest::Error> {
+        let url = format!("{}/messages/{}", API_BASE_URL, self.0);
+
+        let res = http.client.get(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .send()
+        .await?
+        .json::<Message>().await?;
+
+        Ok(res)
+    }
+
+    
 }
