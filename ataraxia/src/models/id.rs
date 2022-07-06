@@ -19,6 +19,11 @@ pub struct ChannelId (
     pub String
 );
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ServerId (
+    pub String
+);
+
 impl UserId {
     pub async fn get_author_user(&self, http: &Http) -> Result<User, reqwest::Error> {
         let url = format!("{}/users/{}", API_BASE_URL, self.0);

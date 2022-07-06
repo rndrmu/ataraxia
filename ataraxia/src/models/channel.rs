@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::id::ChannelId;
+use super::id::{ChannelId, ServerId};
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -18,7 +18,8 @@ pub struct Channel {
     pub channel_type: ChannelType,
     #[serde(rename = "_id")]
     pub channel_id: ChannelId,
-    pub server: String,
+    #[serde(rename = "server")]
+    pub server_id: ServerId,
     pub name: String,
     pub description: Option<String>,
     pub icon: Option<ChannelIcon>,
