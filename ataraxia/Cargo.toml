@@ -2,12 +2,19 @@
 name = "ataraxia"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/rndrmu/ataraxia.git"
+homepage = "https://github.com/rndrmu/ataraxia"
+license = "BSD-3-Clause"
+description = "A Rust Wrapper for the Revolt API"
+readme = "../README.md"
+keywords = ["revolt", "api"]
+publish = true
 
 [features]
 voice = ["dep:ataraxia-voice"]
 
 [dependencies]
-reqwest = "0.11.10"
+reqwest = { version = "0.11.10", features = ["json"] }
 url = "2.2.2"
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 futures-channel = "0.3.21"

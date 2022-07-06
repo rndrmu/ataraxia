@@ -1,12 +1,22 @@
+use reqwest::Result as HTTPResult;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap};
 use serde_json::Value;
+use crate::http::{Http, API_BASE_URL};
+
+use super::id::{
+    UserId,
+    ChannelId,
+    MessageId,
+};
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Message {
-    pub _id: String,
-    pub author: String,
+    #[serde(rename = "_id")]
+    pub id: MessageId,
+    pub author: UserId,
     #[serde(rename = "channel")]
-    pub channel_id: String,
+    pub channel_id: ChannelId,
     pub content: String,
     pub nonce: String,
     pub mentions: Option<Vec<String>>,
@@ -38,9 +48,9 @@ pub struct MessageMetadata {
 impl std::fmt::Display for Message {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.content.is_empty() {
-            write!(f, "Channel: {}, Author: {}", self.channel_id, self.author)
+            write!(f, "Channel: {:?}, Author: {:?}", self.channel_id, self.author)
         } else {
-            write!(f, "Channel: {}, Author: {}, Content: {}", self.channel_id, self.author, self.content)
+            write!(f, "Channel: {:?}, Author: {:?}, Content: {}", self.channel_id, self.author, self.content)
         }
     }
 }
@@ -78,6 +88,7 @@ pub struct CreateMasqueradeMessage {
     name: Option<String>,
     avatar: Option<String>,
 }
+
 
 
 
@@ -194,9 +205,11 @@ impl Default for CreateMasqueradeMessage {
 }
 
 
-use std::result::Result as StdResult;
 
-pub type Result<T> = StdResult<T, serde_json::Error>;
+
+
+
+pub type Result<T> = std::result::Result<T, serde_json::Error>;
 pub type JsonMap = serde_json::Map<String, Value>;
 
 // null value 
@@ -216,4 +229,31 @@ where
     T: Serialize,
 {
     Ok(serde_json::to_value(value)?)
+}
+
+impl Message {
+
+    /// Edits a given Message, preserving all non-specified fields.
+    pub async fn edit<F>(&self, http: &Http, f: F) -> HTTPResult<Message>
+    where
+        F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
+    {
+        let mut message = CreateMessage::default();
+        f(&mut message);
+
+        let json = to_value(message).unwrap(); // this should never fail :^) 
+
+        let url = format!("{}/channels/{}/messages/{}", API_BASE_URL, self.channel_id.0, self.id.0);
+
+        let res = http.client.patch(&url)
+            .header("x-bot-token", http.token.as_ref().unwrap())
+            .json(&json)
+            .send()
+            .await?
+            .json::<Message>()
+            .await?;
+
+        Ok(res)
+
+    }
 }

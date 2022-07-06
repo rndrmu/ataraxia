@@ -1,11 +1,13 @@
 
 
 
+use std::sync::Arc;
+
 use tokio;
 
 use ataraxia::{
     websocket::{Client, EventHandler},
-    models::message::Message as RevoltMessage,
+    models::{message::Message as RevoltMessage, ready::Ready},
     context::Context,
     async_trait
 };
@@ -19,8 +21,9 @@ impl EventHandler for Handler {
         println!("Authenticated!");
     }
     /// Function called when the client is ready to receive events
-    async fn ready(&self, _ctx: Context) {
+    async fn ready(&self, _ctx: Context, ready: Ready) {
         println!("Ready!");
+        println!("{:?} is connected!", ready.users.iter().map(|u| &u.username).collect::<Vec<_>>());
     }
 
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
@@ -33,11 +36,10 @@ impl EventHandler for Handler {
 
         if message.content == "!ping" {
 
-
-            ctx.reply_builder(&message.channel_id, |r| {
+            let msg = message.channel_id.send_message(&ctx.http, |r| {
                 r.content("hello!")
                 .set_masquerade(|masquerade| {
-                    masquerade.name("Rainer Winkler").avatar("https://cdn.discordapp.com/avatars/242385294123335690/d0b2755d7113d0630a51ead93b4dfd67.png")
+                    masquerade.name("Rainer Winkler").avatar("https://i.imgflip.com/6bnywv.jpg")
                 })
                 .create_embed(|embed| {
                     embed.title("Test Embed")
@@ -51,9 +53,33 @@ impl EventHandler for Handler {
                     .description("Ich bin nicht derjeniche!")
                     .url("https://www.youtube.com/watch?v=FcSeR4fdqbs")
                     .colour("#00ffff")
-                    .icon_url("https://imgflip.com/meme/382391167/Rainer-Winkler-Br")
+                    .icon_url("https://i.imgflip.com/6bnywv.jpg")
                 })
-            }).await
+                .create_embed(|e| {
+                    e.title("Test")
+                })
+            }).await.map_err(|e| println!("{}", e));
+
+            println!("Sent Message with Content '{:?}' Successfully!", msg);
+
+            // sleep 5s 
+            std::thread::sleep(std::time::Duration::from_secs(5));
+
+            match msg {
+                Ok(msg) => {
+                   let edited = msg.edit(&ctx.http, |f| {
+                        f.content("hello again!")
+                        .create_embed(|f| {
+                            f.title(":trol:")
+                            .url("https://i.redd.it/ztfffav639991.jpg")
+                        })
+                   }).await;
+                   println!("Edited Message with Content '{:?}' Successfully!", edited);
+                },
+                Err(e) => {
+                    println!("Error: {:?}", e);
+                }
+            }
 
 
         } else if message.content.starts_with("!join") {
@@ -66,8 +92,14 @@ impl EventHandler for Handler {
 
 
         } else if message.content == "!channelinfo" {
-            let chn = ctx.get_channel(&message.channel_id).await.unwrap();
+            let chn = ctx.get_channel(&message.channel_id.0).await.unwrap();
             println!("{:?}", chn);
+        } else if message.content == "!me" {
+            let user = message.author.get_author_user(&ctx.http).await.unwrap();
+
+            ctx.reply(&format!("{:?}", user)).await;
+
+            println!("{:?}", user);
         }
     }
 }
@@ -98,10 +130,13 @@ async fn main() {
     // otherwise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
     let mut client = Client::new(token)
     .event_handler(Handler)
-    .set_api_url("https://api.revolt.chat");
+    .set_api_url("https://api.revolt.chat")
+    .await;
 
 
     client.start().await;
+
+
 
 
 
