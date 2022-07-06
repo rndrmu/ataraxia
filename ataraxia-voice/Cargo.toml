@@ -26,6 +26,8 @@ async-trait = "0.1.51"
 rtp-rs = "0.6.0"
 byteorder = "1.4.3"
 datachannel = "0.7.8"
+rand = "0.8.5"
+chrono = "0.4.19"
 
 [dependencies.tokio]
 version = "1"

@@ -6,6 +6,7 @@
 use std::{sync::{Arc}};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use rand::Rng;
 use serde_json::json;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
@@ -84,6 +85,11 @@ impl Socket {
             srtp_parameters: None,
             vortex_id: None
         }
+    }
+
+    fn ssrc_o_matic() -> u32 {
+        let mut rng = rand::thread_rng();
+        rng.gen::<u32>()
     }
 
     async fn initialize_transports(&self) {
@@ -259,23 +265,33 @@ println!("3 pew pew");
                                     // split 
 
                                     let packet = ffmpeg.stdout;
+                                    let ssrc_dummy = 3082236920i64;
 
-
-
-                                   let opus = super::encode_to_opus(packet);
-
-                                let opus_paket =  match opus {
-                                    Ok(opus) => opus,
-                                    Err(e) => {
-                                        println!("[CRITICAL] Failed to encode to opus: {}", e);
-                                        return;
-                                    }
-                                };
-
-                                println!("{:?}", opus_paket)
-                                    
-
+                                    /*
+                                    The following Code is largely taken from Sleepy Discord
+                                    <https://github.com/yourWaifu/sleepy-discord/blob/master/sleepy_discord/voice_connection.cpp>
+                                    */
                                    
+                                    let mut sequence_number = 0;
+                                    let mut timestamp = chrono::Utc::now().timestamp();
+                                    const header_size: usize = 12;
+
+                                    let mut header = [0u8; header_size];
+
+                                    header[0] = 0x80;
+                                    header[1] = 0x78;
+                                    header[2] = ((sequence_number >> (8 * 1)) & 0xff ) as u8;
+                                    header[3] = ((sequence_number >> (8 * 0)) & 0xff ) as u8;
+                                    header[4] = ((timestamp >> (8 * 3)) & 0xff ) as u8;
+                                    header[5] = ((timestamp >> (8 * 2)) & 0xff ) as u8;
+                                    header[6] = ((timestamp >> (8 * 1)) & 0xff ) as u8;
+                                    header[7] = ((timestamp >> (8 * 0)) & 0xff ) as u8;
+                                    header[8] = ((ssrc_dummy >> (8 * 3)) & 0xff ) as u8;
+                                    header[9] = ((ssrc_dummy >> (8 * 2)) & 0xff ) as u8;
+                                    header[10] = ((ssrc_dummy >> (8 * 1)) & 0xff ) as u8;
+                                    header[11] = ((ssrc_dummy >> (8 * 0)) & 0xff ) as u8;
+
+
                                 }
 
                                 Some(&_) => {
