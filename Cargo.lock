@@ -66,29 +66,17 @@ dependencies = [
 ]
 
 [[package]]
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 0ee1d41 (Remove some dependencies)
 name = "ataraxia-examples"
 version = "0.0.0"
 dependencies = [
  "ataraxia",
  "dotenv",
-<<<<<<< HEAD
  "serde_json",
-=======
->>>>>>> 0ee1d41 (Remove some dependencies)
  "tokio",
  "tracing-subscriber",
 ]
 
 [[package]]
-<<<<<<< HEAD
-=======
->>>>>>> 0e91110 (Add Metadata to Cargo.toml)
-=======
->>>>>>> 0ee1d41 (Remove some dependencies)
 name = "ataraxia-voice"
 version = "0.1.0"
 dependencies = [
