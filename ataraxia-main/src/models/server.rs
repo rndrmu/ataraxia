@@ -9,7 +9,7 @@ pub struct ServerConfig {
     pub websocket_url: String,
     #[serde(rename = "app")]
     pub app_url: String,
-    pub vapid: String
+    pub vapid: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

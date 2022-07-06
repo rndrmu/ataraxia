@@ -1,27 +1,32 @@
+use std::sync::Arc;
+use tracing::{debug, error, info};
 
-use std::{sync::{Arc}};
-use tracing::{debug, info, error};
-
-use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use crate::{
+    context::Context,
+    http::Http,
+    models::{message::Message as RevoltMessage, ready::Ready},
+};
+use futures_util::{
+    stream::{SplitSink, SplitStream},
+    SinkExt, StreamExt,
+};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
-use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use crate::{models::{message::Message as RevoltMessage, ready::Ready}, context::Context, http::Http};
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
 
 #[derive(Clone)]
 pub struct Client {
     /// Your bot's Token
-    /// 
-    /// pub, because - well its set by the user 
+    ///
+    /// pub, because - well its set by the user
     pub(crate) token: String,
     /// The actual Socket Connection
     socket: Option<Socket>,
     #[allow(dead_code)]
     api_url: Option<String>,
     socket_url: Option<String>,
-    event_handler: Option<Arc<dyn EventHandler>>
+    event_handler: Option<Arc<dyn EventHandler>>,
 }
-
 
 #[derive(Clone)]
 struct Socket {
@@ -29,7 +34,6 @@ struct Socket {
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
     event_handler: Arc<dyn EventHandler>,
 }
-
 
 #[async_trait::async_trait]
 pub trait EventHandler: Send + Sync + 'static {
@@ -66,17 +70,14 @@ pub trait EventHandler: Send + Sync + 'static {
     async fn user_relationship(&self);*/
 }
 
-
-
 impl Client {
     pub fn new(token: String) -> Self {
-
         Self {
             token,
             socket: None,
             api_url: None,
             socket_url: None,
-            event_handler: None
+            event_handler: None,
         }
     }
 
@@ -99,41 +100,52 @@ impl Client {
     }
 
     pub async fn start(&mut self) {
-
         let handler = match &self.event_handler {
             Some(h) => h,
-            None => panic!("Expected Event Handler in initialisation!")
+            None => panic!("Expected Event Handler in initialisation!"),
         };
 
         let socket_url = match self.socket_url.clone() {
             Some(url) => url,
-            None => "wss://ws.revolt.chat".to_owned()
+            None => "wss://ws.revolt.chat".to_owned(),
         };
 
-        let websocket = Socket::new(socket_url ,handler.to_owned()).await;
+        let websocket = Socket::new(socket_url, handler.to_owned()).await;
         self.socket = Some(websocket);
-        self.socket.as_mut().unwrap().connect(self.token.clone()).await;
+        self.socket
+            .as_mut()
+            .unwrap()
+            .connect(self.token.clone())
+            .await;
     }
 }
 
 impl Socket {
-    pub async fn new(socket_url: String ,handler: Arc<dyn EventHandler>) -> Socket {
+    pub async fn new(socket_url: String, handler: Arc<dyn EventHandler>) -> Socket {
         let (ws_stream, _) = connect_async(socket_url).await.unwrap();
         let (writer, reader) = ws_stream.split();
 
         Socket {
             socket_writer: Arc::from(Mutex::new(writer)),
             socket_reader: Arc::from(Mutex::new(reader)),
-            event_handler: handler
+            event_handler: handler,
         }
     }
 
     pub async fn connect(&self, token: String) -> &Socket {
         debug!("Connecting...");
-        self.socket_writer.lock().await.send(Message::Text(json!({
-            "type": "Authenticate",
-            "token": token
-        }).to_string())).await.unwrap();
+        self.socket_writer
+            .lock()
+            .await
+            .send(Message::Text(
+                json!({
+                    "type": "Authenticate",
+                    "token": token
+                })
+                .to_string(),
+            ))
+            .await
+            .unwrap();
 
         let handler_reader = Arc::clone(&self.socket_reader);
         let handler_writer = Arc::clone(&self.socket_writer);
@@ -141,69 +153,84 @@ impl Socket {
         let arc_handler = Arc::clone(&self.event_handler);
 
         spawn(async move {
-            crate::websocket::Socket::handler(handler_reader, handler_writer, arc_token, arc_handler).await;
-        }).await.unwrap();
+            crate::websocket::Socket::handler(
+                handler_reader,
+                handler_writer,
+                arc_token,
+                arc_handler,
+            )
+            .await;
+        })
+        .await
+        .unwrap();
 
         self
     }
 
-
-
-    pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    pub async fn handler(
+        reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         token: Arc<String>,
-        event: Arc<dyn EventHandler>)
-    {
-            while let Some(message) = reader.lock().await.next().await {
-                match message {
-                    Ok(message) => {
+        event: Arc<dyn EventHandler>,
+    ) {
+        while let Some(message) = reader.lock().await.next().await {
+            match message {
+                Ok(message) => {
+                    if message.is_text() {
+                        let json: serde_json::Value =
+                            serde_json::from_str(&message.to_string()).unwrap();
+                        let json_clone = json.clone();
 
-                        if message.is_text() {
-                            let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
-                            let json_clone = json.clone();
-                            
-                            match json["type"].as_str() {
-                                Some("Ready") => {
-                                    let ready: Ready = serde_json::from_value(json).unwrap();
-                                    event.ready(Context::new(&token, &message.to_string()), ready).await;
+                        match json["type"].as_str() {
+                            Some("Ready") => {
+                                let ready: Ready = serde_json::from_value(json).unwrap();
+                                event
+                                    .ready(Context::new(&token, &message.to_string()), ready)
+                                    .await;
+                            }
 
-                                    
-                                },
-                                
-                                Some("Authenticated") => {
-                                    event.authenticated().await;
+                            Some("Authenticated") => {
+                                event.authenticated().await;
 
-                                    // spawn heartbeat thread 
-                                    
-                                    let writer_clone = Arc::clone(&writer);
-                                    tokio::spawn(async move {
-                                        loop {
-                                            info!("[GATEWAY] Sending Heartbeat...");
-                                            writer_clone.lock().await.send(Message::Text(serde_json::json!({
+                                // spawn heartbeat thread
+
+                                let writer_clone = Arc::clone(&writer);
+                                tokio::spawn(async move {
+                                    loop {
+                                        info!("[GATEWAY] Sending Heartbeat...");
+                                        writer_clone.lock().await.send(Message::Text(serde_json::json!({
                                                 "type": "Ping",
                                                 "data": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
                                             }).to_string())).await.unwrap();
-                                            // release lock and wait for next heartbeat
-                                            tokio::time::sleep(std::time::Duration::from_secs(30)).await;
-                                        }
-                                    });
-                                },
-                                Some("Message") => {
-                                    let message: Result<crate::models::message::Message, serde_json::Error> = serde_json::from_value(json);
-                                    if let Ok(message) = message {
-                                        event.on_message(Context::new(&token, &json_clone.to_string()), message).await;
+                                        // release lock and wait for next heartbeat
+                                        tokio::time::sleep(std::time::Duration::from_secs(30))
+                                            .await;
                                     }
-                                },
-                                Some(&_) => {},
-                                None => {},
+                                });
                             }
+                            Some("Message") => {
+                                let message: Result<
+                                    crate::models::message::Message,
+                                    serde_json::Error,
+                                > = serde_json::from_value(json);
+                                if let Ok(message) = message {
+                                    event
+                                        .on_message(
+                                            Context::new(&token, &json_clone.to_string()),
+                                            message,
+                                        )
+                                        .await;
+                                }
+                            }
+                            Some(&_) => {}
+                            None => {}
                         }
-
-                    }
-                    Err(e) => {
-                        return error!("{:?}", e);
                     }
                 }
+                Err(e) => {
+                    return error!("{:?}", e);
+                }
             }
+        }
     }
 }

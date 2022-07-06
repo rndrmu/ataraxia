@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use super::id::{ChannelId, ServerId};
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
 pub enum ChannelType {
@@ -56,4 +55,3 @@ pub struct ChannelDefaultPermissions {
     #[serde(rename = "d")]
     pub deny: i32,
 }
-

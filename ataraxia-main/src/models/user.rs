@@ -17,7 +17,7 @@ pub struct User {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserStatus {
     pub text: String,
-    pub presence: UserPresence
+    pub presence: UserPresence,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -25,5 +25,4 @@ pub enum UserPresence {
     Online,
     Idle,
     Busy,
-    
 }
