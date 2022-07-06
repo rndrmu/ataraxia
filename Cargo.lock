@@ -71,6 +71,7 @@ version = "0.0.0"
 dependencies = [
  "ataraxia",
  "dotenv",
+ "serde_json",
  "tokio",
  "tracing-subscriber",
 ]
