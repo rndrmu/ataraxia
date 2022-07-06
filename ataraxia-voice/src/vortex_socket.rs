@@ -31,6 +31,8 @@ struct Socket {
     socket_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
     udp_socket: Arc<Mutex<tokio::net::UdpSocket>>,
+    srtp_parameters: Option<String>,
+    vortex_id: Option<String>,
 }
 
 
@@ -78,8 +80,68 @@ impl Socket {
         Socket {
             socket_writer: Arc::from(Mutex::new(writer)),
             socket_reader: Arc::from(Mutex::new(reader)),
-            udp_socket: Arc::from(Mutex::new(udp_socket))
+            udp_socket: Arc::from(Mutex::new(udp_socket)),
+            srtp_parameters: None,
+            vortex_id: None
         }
+    }
+
+    async fn initialize_transports(&self) {
+        self.socket_writer.lock().await.send(Message::Text(json!(
+            {
+                "id":25,
+                "type":"InitializeTransports",
+                "data":{"mode":"CombinedRTP",
+                "rtpCapabilities":{
+                    "codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
+                    "headerExtensions":[
+                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},
+                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
+    ).to_string())).await.unwrap();
+    }
+
+    async fn connect_transport(&self) {
+        self.socket_writer.lock().await.send(Message::Text(json!(
+        {
+            "id":30,
+            "type":"ConnectTransport",
+            "data":{
+                "id": self.vortex_id.as_ref().unwrap(),
+                "srtpParameters": {
+                    "cryptoSuite": "AES_CM_128_HMAC_SHA1_80",
+                    "keyBase64": "bWVkZGxfbG9pZGU=", // this is simply "meddl_loide" encoded into base64 :^)
+                },
+            }
+        }
+).to_string())).await.unwrap();
+    }
+
+    async fn start_produce(&self) {
+
+    self.socket_writer.lock().await.send(Message::Text(json!(
+        {
+            "id":30,
+            "type":"StartProduce",
+            "data":{
+                "type":"audio","rtpParameters":{
+                    "codecs":[
+                        {"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},
+                        "rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
+                        "headerExtensions":[
+                            {"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},
+                            {"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},
+                            {"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},
+                            {"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],
+                            "encodings":[{"ssrc":3082236920i64,"dtx":false}],
+                            "rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":false},
+                            "mid":"0"}}}
+).to_string())).await.unwrap();
     }
 
     /// Authenticate to Voice Servers
@@ -100,43 +162,11 @@ impl Socket {
             "type": "RoomInfo"
         }).to_string())).await.unwrap();
 
-        self.socket_writer.lock().await.send(Message::Text(json!(
-            {
-                "id":25,
-                "type":"InitializeTransports",
-                "data":{"mode":"CombinedRTP",
-                "rtpCapabilities":{
-                    "codecs":[{"mimeType":"audio/opus","kind":"audio","preferredPayloadType":100,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},"rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
-                    "headerExtensions":[
-                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:sdes:mid","preferredId":1,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"audio","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"video","uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","preferredId":4,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"video","uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","preferredId":5,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},
-                        {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
-    ).to_string())).await.unwrap();
+        self.initialize_transports().await;
+
+        
     
 
-    self.socket_writer.lock().await.send(Message::Text(json!(
-        {
-            "id":30,
-            "type":"StartProduce",
-            "data":{
-                "type":"audio","rtpParameters":{
-                    "codecs":[
-                        {"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},
-                        "rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
-                        "headerExtensions":[
-                            {"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},
-                            {"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},
-                            {"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},
-                            {"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],
-                            "encodings":[{"ssrc":3082236920i64,"dtx":false}],
-                            "rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":false},
-                            "mid":"0"}}}
-).to_string())).await.unwrap();
 
 println!("3 pew pew");
 
@@ -145,12 +175,12 @@ println!("3 pew pew");
         let handler_writer = Arc::clone(&self.socket_writer);
         let arc_token = Arc::clone(&Arc::new(token.to_owned()));
 
-        let self_clone = self.clone();
+        let mut self_clone = self.clone();
         println!("2 pew pew");
 
 
         tokio::spawn(async move {
-            crate::vortex_socket::Socket::handler(&self_clone, handler_reader, handler_writer, arc_token).await;
+            crate::vortex_socket::Socket::handler(&mut self_clone, handler_reader, handler_writer, arc_token).await;
         });
 
         println!("pew pew");
@@ -161,7 +191,7 @@ println!("3 pew pew");
 
 
 
-    pub async fn handler(&self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    pub async fn handler(&mut self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         _writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         _token: Arc<String>
     )
@@ -179,44 +209,27 @@ println!("3 pew pew");
 
                                     println!("Received Authenticated");
 
-                                    // spawn heartbeat thread 
-                                    
-                                    //  let writer_clone = Arc::clone(&writer);
-                                    //  tokio::spawn(async move {
-                                    //      loop {
-                                    //          println!("[VORTEX] Sending Heartbeat...");
-                                    //          let ping_result = writer_clone.lock().await.send(Message::Text(serde_json::json!({
-                                    //              "type": "Ping",
-                                    //              "data": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs()
-                                    //          }).to_string())).await;
-
-                                    //          match ping_result {
-                                    //              Ok(_) => {
-                                    //                  println!("[VORTEX] Heartbeat Sent");
-                                    //              },
-                                    //              Err(e) => {
-                                    //                  println!("[VORTEX] Heartbeat Failed: {}", e);
-                                    //                  // close socket
-                                    //                  break;
-                                    //                 writer_clone.lock().await.close();
-                                    //              }
-                                    //          }
-
-                                    //          // release lock and wait for next heartbeat
-                                    //          tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-                                    //      }
-                                    //  });
                                 },
                                 Some("InitializeTransports") => {
                                     println!("[DEBUG] JSON PAYLOAD {:?}", json);
 
                                     let ip = json["data"]["ip"].as_str().unwrap();
                                     let port = json["data"]["port"].as_i64().unwrap();
+                                    let srtp_crypto_suite = json["data"]["srtpCryptoSuite"].as_str().unwrap();
+                                    self.srtp_parameters = Some(srtp_crypto_suite.to_string());
+                                    let id = json["data"]["id"].as_str().unwrap();
+                                    self.vortex_id = Some(id.to_string());
 
                                     self.udp_socket.lock().await.connect(
                                         format!("{}:{}", ip, port)
                                     ).await.unwrap();
                                     println!("[VORTEX] UDP Socket Connected");
+
+                                    self.connect_transport().await;
+                                    println!("[VORTEX] Connected to Transport");
+                                    self.start_produce().await;
+                                    println!("[VORTEX] Started Produce");
+
                                 },
 
                                 Some("StartProduce") => {
