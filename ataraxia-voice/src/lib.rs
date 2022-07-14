@@ -4,6 +4,7 @@ use std::{fmt::format, process::Command};
 
 pub mod vortex_socket;
 pub mod models;
+pub mod crypto;
 
 // some constants, used for audio encoding
 pub const SAMPLE_RATE: usize = 44100;

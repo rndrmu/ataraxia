@@ -87,10 +87,7 @@ impl Socket {
         }
     }
 
-    fn ssrc_o_matic() -> u32 {
-        let mut rng = rand::thread_rng();
-        rng.gen::<u32>()
-    }
+    
 
     async fn initialize_transports(&self) {
         self.socket_writer.lock().await.send(Message::Text(json!(
@@ -128,25 +125,34 @@ impl Socket {
 ).to_string())).await.unwrap();
     }
 
-    async fn start_produce(&self) {
+    async fn start_produce(self) {
+        let ssrc = ssrc_o_matic();
+        let uuid = uuid::Uuid::new_v4().to_string();
 
     self.socket_writer.lock().await.send(Message::Text(json!(
         {
-            "id":30,
-            "type":"StartProduce",
-            "data":{
-                "type":"audio","rtpParameters":{
-                    "codecs":[
-                        {"mimeType":"audio/opus","payloadType":111,"clockRate":48000,"channels":2,"parameters":{"minptime":10,"useinbandfec":1},
-                        "rtcpFeedback":[{"type":"transport-cc","parameter":""}]}],
-                        "headerExtensions":[
-                            {"uri":"urn:ietf:params:rtp-hdrext:sdes:mid","id":4,"encrypt":false,"parameters":{}},
-                            {"uri":"http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time","id":2,"encrypt":false,"parameters":{}},
-                            {"uri":"http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01","id":3,"encrypt":false,"parameters":{}},
-                            {"uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","id":1,"encrypt":false,"parameters":{}}],
-                            "encodings":[{"ssrc":3082236920i64,"dtx":false}],
-                            "rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":false},
-                            "mid":"0"}}}
+            "id": 69,
+            "type": "StartProduce",
+            "data": {
+                "rtpParameters": {
+                    "mid": 1,
+                    "codecs": [
+                        {
+                            "channels": 2,
+                            "clockRate": 48000,
+                            "mimeType": "audio/opus",
+                            "payloadType": 120,
+                            "parameters": {},
+                            "rtcpFeedback": [],
+                        },
+                    ],
+                    "headerExtensions": [],
+                    "encodings": [{ "maxBitrate": 512000, "ssrc": ssrc }],
+                    "rtcp": { "cname": uuid, "reducedSize": false },
+                },
+                "type": "audio",
+            },
+        }
 ).to_string())).await.unwrap();
     }
 
@@ -265,31 +271,7 @@ println!("3 pew pew");
                                     // split 
 
                                     let packet = ffmpeg.stdout;
-                                    let ssrc_dummy = 3082236920i64;
-
-                                    /*
-                                    The following Code is largely taken from Sleepy Discord
-                                    <https://github.com/yourWaifu/sleepy-discord/blob/master/sleepy_discord/voice_connection.cpp>
-                                    */
-                                   
-                                    let mut sequence_number = 0;
-                                    let mut timestamp = chrono::Utc::now().timestamp();
-                                    const header_size: usize = 12;
-
-                                    let mut header = [0u8; header_size];
-
-                                    header[0] = 0x80;
-                                    header[1] = 0x78;
-                                    header[2] = ((sequence_number >> (8 * 1)) & 0xff ) as u8;
-                                    header[3] = ((sequence_number >> (8 * 0)) & 0xff ) as u8;
-                                    header[4] = ((timestamp >> (8 * 3)) & 0xff ) as u8;
-                                    header[5] = ((timestamp >> (8 * 2)) & 0xff ) as u8;
-                                    header[6] = ((timestamp >> (8 * 1)) & 0xff ) as u8;
-                                    header[7] = ((timestamp >> (8 * 0)) & 0xff ) as u8;
-                                    header[8] = ((ssrc_dummy >> (8 * 3)) & 0xff ) as u8;
-                                    header[9] = ((ssrc_dummy >> (8 * 2)) & 0xff ) as u8;
-                                    header[10] = ((ssrc_dummy >> (8 * 1)) & 0xff ) as u8;
-                                    header[11] = ((ssrc_dummy >> (8 * 0)) & 0xff ) as u8;
+                                    let ssrc_dummy = 30822i64;
 
 
                                 }
@@ -308,4 +290,38 @@ println!("3 pew pew");
                 }
             }
     }
+}
+
+
+pub struct RtpHeader {
+    pub sequence:        u16,
+    pub timestamp:       u32,
+    pub ssrc:            u32,
+    pub version:         u32,
+    pub hasPadding:      bool,
+    pub hasExtension:    bool,
+    pub csrcCount:       u32,
+    pub csrcIdentifiers: Vec<u32>,
+    pub marker:          bool,
+    pub payloadType:     u16
+}
+
+fn create_rtp_header() -> RtpHeader {
+    RtpHeader {
+        sequence: 0,
+        timestamp: 0,
+        ssrc: 0,
+        version: 2,
+        hasPadding: false,
+        hasExtension: false,
+        csrcCount: 0,
+        csrcIdentifiers: vec![],
+        marker: false,
+        payloadType: 0x78
+    }
+}
+
+pub fn ssrc_o_matic() -> i32 {
+        let mut rng = rand::thread_rng();
+        rng.gen::<i32>()
 }
