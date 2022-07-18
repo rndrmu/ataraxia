@@ -6,6 +6,11 @@
 use std::{sync::{Arc}};
 
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+<<<<<<< Updated upstream
+=======
+use rand::Rng;
+use serde::{Serialize, Deserialize};
+>>>>>>> Stashed changes
 use serde_json::json;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
@@ -136,31 +141,84 @@ impl Socket {
                             "rtcp":{"cname":"PxvC7Ug841mk/2iE","reducedSize":false},
                             "mid":"0"}}}
 ).to_string())).await.unwrap();
+    }
 
-println!("3 pew pew");
+    async fn start_produce(&self) {
+        let ssrc = ssrc_o_matic();
+        let uuid = uuid::Uuid::new_v4().to_string();
+
+    self.socket_writer.lock().await.send(Message::Text(json!(
+        {
+            "id": 69,
+            "type": "StartProduce",
+            "data": {
+                "rtpParameters": {
+                    "mid": 1,
+                    "codecs": [
+                        {
+                            "channels": 2,
+                            "clockRate": 48000,
+                            "mimeType": "audio/opus",
+                            "payloadType": 120,
+                            "parameters": {},
+                            "rtcpFeedback": [],
+                        },
+                    ],
+                    "headerExtensions": [],
+                    "encodings": [{ "maxBitrate": 512000, "ssrc": ssrc }],
+                    "rtcp": { "cname": uuid, "reducedSize": false },
+                },
+                "type": "audio",
+            },
+        }
+).to_string())).await.unwrap();
+    }
+
+    /// Authenticate to Voice Servers
+    /// Where `token` is your bots token
+    /// and `channel_id` is the channel id of the voice channel you are connecting to
+    pub async fn connect(self, token: &String, channel_id: &str) -> Socket {
+        self.socket_writer.lock().await.send(Message::Text(json!({
+            "id": 0,
+            "data": {
+                "roomId": channel_id,
+                "token": token,
+            },
+            "type": "Authenticate"
+        }).to_string())).await.unwrap();
+
+        self.socket_writer.lock().await.send(Message::Text(json!({
+            "id": 1,
+            "type": "RoomInfo"
+        }).to_string())).await.unwrap();
+
+        self.initialize_transports().await;
+
+        
+    
+
+
 
 
         let handler_reader = Arc::clone(&self.socket_reader);
         let handler_writer = Arc::clone(&self.socket_writer);
         let arc_token = Arc::clone(&Arc::new(token.to_owned()));
 
-        let self_clone = self.clone();
-        println!("2 pew pew");
+        let mut self_clone = self.clone();
 
 
         tokio::spawn(async move {
             crate::vortex_socket::Socket::handler(&self_clone, handler_reader, handler_writer, arc_token).await;
         });
 
-        println!("pew pew");
 
         self
     }
 
 
 
-
-    pub async fn handler(&self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    /// Event Loop for Vortex Socket
+    pub async fn handler(&mut self, reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         _writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         _token: Arc<String>
     )
@@ -281,4 +339,42 @@ println!("3 pew pew");
                 }
             }
     }
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RtpHeader {
+    pub sequence:        u16,
+    pub timestamp:       u32,
+    pub ssrc:            u32,
+    pub version:         u32,
+    pub has_padding:      bool,
+    pub has_extension:    bool,
+    pub csrc_count:       u32,
+    pub csrc_identifiers: Vec<u32>,
+    pub marker:          bool,
+    pub payload_type:     u16
+}
+
+/// Initializes a new RTP Header.
+fn create_rtp_header() -> RtpHeader {
+    RtpHeader {
+        sequence: 0,
+        timestamp: 0,
+        ssrc: 0,
+        version: 2,
+        has_padding: false,
+        has_extension: false,
+        csrc_count: 0,
+        csrc_identifiers: vec![],
+        marker: false,
+        payload_type: 0x78
+    }
+}
+
+/// Generates a Synchronization Source Identifier (SSRC) for a RTP Packet.
+pub fn ssrc_o_matic() -> i32 {
+        let mut rng = rand::thread_rng();
+        rng.gen::<i32>()
 }
