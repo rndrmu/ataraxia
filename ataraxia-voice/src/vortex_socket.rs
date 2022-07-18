@@ -4,13 +4,8 @@
 
 
 use std::{sync::{Arc}};
-
+use serde::{Deserialize, Serialize};
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
-<<<<<<< Updated upstream
-=======
-use rand::Rng;
-use serde::{Serialize, Deserialize};
->>>>>>> Stashed changes
 use serde_json::json;
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
@@ -60,7 +55,7 @@ impl VoiceClient {
     pub async fn init(&mut self, channel_id: &str) {
         let websocket = Socket::new().await;
         self.socket = Some(websocket);
-        let conn = self.socket.clone().unwrap().connect(&self.token, channel_id).await;
+        let conn = self.socket.clone().unwrap();//.connect(&self.token, channel_id).await;
         self.ata_socket = Arc::new(Some(conn));
         println!("Connected!");
     }
@@ -86,11 +81,11 @@ impl Socket {
         }
     }
 
-    /// Authenticate to Voice Servers
+   /*  /// Authenticate to Voice Servers
     /// Where `token` is your bots token
     /// and `channel_id` is the channel id of the voice channel you are connecting to
     pub async fn connect(self, token: &String, channel_id: &str) -> Socket {
-        self.socket_writer.lock().await.send(Message::Text(json!({
+       /*  self.socket_writer.lock().await.send(Message::Text(json!({
             "id": 0,
             "data": {
                 "roomId": channel_id,
@@ -102,9 +97,9 @@ impl Socket {
         self.socket_writer.lock().await.send(Message::Text(json!({
             "id": 1,
             "type": "RoomInfo"
-        }).to_string())).await.unwrap();
+        }).to_string())).await.unwrap(); */
 
-        self.socket_writer.lock().await.send(Message::Text(json!(
+       /*  self.socket_writer.lock().await.send(Message::Text(json!(
             {
                 "id":25,
                 "type":"InitializeTransports",
@@ -120,7 +115,7 @@ impl Socket {
                         {"kind":"audio","uri":"urn:ietf:params:rtp-hdrext:ssrc-audio-level","preferredId":10,"preferredEncrypt":false,"direction":"sendrecv"},
                         {"kind":"video","uri":"urn:3gpp:video-orientation","preferredId":11,"preferredEncrypt":false,"direction":"sendrecv"},
                         {"kind":"video","uri":"urn:ietf:params:rtp-hdrext:toffset","preferredId":12,"preferredEncrypt":false,"direction":"sendrecv"}]}}}
-    ).to_string())).await.unwrap();
+    ).to_string())).await.unwrap(); */
     
 
     self.socket_writer.lock().await.send(Message::Text(json!(
@@ -142,8 +137,8 @@ impl Socket {
                             "mid":"0"}}}
 ).to_string())).await.unwrap();
     }
-
-    async fn start_produce(&self) {
+ */
+/*     async fn start_produce(&self) {
         let ssrc = ssrc_o_matic();
         let uuid = uuid::Uuid::new_v4().to_string();
 
@@ -172,48 +167,9 @@ impl Socket {
             },
         }
 ).to_string())).await.unwrap();
-    }
-
-    /// Authenticate to Voice Servers
-    /// Where `token` is your bots token
-    /// and `channel_id` is the channel id of the voice channel you are connecting to
-    pub async fn connect(self, token: &String, channel_id: &str) -> Socket {
-        self.socket_writer.lock().await.send(Message::Text(json!({
-            "id": 0,
-            "data": {
-                "roomId": channel_id,
-                "token": token,
-            },
-            "type": "Authenticate"
-        }).to_string())).await.unwrap();
-
-        self.socket_writer.lock().await.send(Message::Text(json!({
-            "id": 1,
-            "type": "RoomInfo"
-        }).to_string())).await.unwrap();
-
-        self.initialize_transports().await;
-
-        
-    
+    } */
 
 
-
-
-        let handler_reader = Arc::clone(&self.socket_reader);
-        let handler_writer = Arc::clone(&self.socket_writer);
-        let arc_token = Arc::clone(&Arc::new(token.to_owned()));
-
-        let mut self_clone = self.clone();
-
-
-        tokio::spawn(async move {
-            crate::vortex_socket::Socket::handler(&self_clone, handler_reader, handler_writer, arc_token).await;
-        });
-
-
-        self
-    }
 
 
 
@@ -344,7 +300,7 @@ impl Socket {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RtpHeader {
+pub(crate) struct RtpHeader {
     pub sequence:        u16,
     pub timestamp:       u32,
     pub ssrc:            u32,
@@ -373,8 +329,8 @@ fn create_rtp_header() -> RtpHeader {
     }
 }
 
-/// Generates a Synchronization Source Identifier (SSRC) for a RTP Packet.
+/* /// Generates a Synchronization Source Identifier (SSRC) for a RTP Packet.
 pub fn ssrc_o_matic() -> i32 {
         let mut rng = rand::thread_rng();
         rng.gen::<i32>()
-}
+} */

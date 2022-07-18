@@ -9,7 +9,7 @@
 */
 
 
-use crate::vortex_socket::RtpHeader;
+/* use crate::vortex_socket::RtpHeader; */
 
 #[macro_use]
 use crate::yeet;
@@ -27,7 +27,7 @@ pub const KEY_LENGTH: usize = 16;
 
 // encode to base64 without any external dependencies
 
-pub fn create(enc_context: Context, header:RtpHeader, payload: &[u8]) {
+/* pub fn create(enc_context: Context, header:RtpHeader, payload: &[u8]) {
     let roc = 0;
 
     let mut counter_cursor = ByteWriter::with_size(COUNTER_LENGTH, Some(Endianess::Big));
@@ -35,7 +35,7 @@ pub fn create(enc_context: Context, header:RtpHeader, payload: &[u8]) {
     EncryptionStrategy::encrypt(&mut counter_cursor, header, payload);
 
 }
-
+ */
 
 pub fn encode_base64(data: &[u8]) -> String {
     base64::encode(&data)
@@ -172,13 +172,13 @@ pub struct EncryptionStrategy;
 
 impl EncryptionStrategy {
 
-    pub fn encrypt(
+   /*  pub fn encrypt(
         cursor: &mut ByteWriter,
         header: RtpHeader,
         payload: &[u8],
     ) {
 
-    }
+    } */
 
     pub fn next_sequence(prev: u16) -> u16 {
         prev + 1
