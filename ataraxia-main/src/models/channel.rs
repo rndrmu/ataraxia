@@ -2,14 +2,18 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::id::{ChannelId, ServerId};
+use super::id::{ChannelId, ServerId, UserId};
 
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 
+#[non_exhaustive]
 pub enum ChannelType {
     TextChannel,
     VoiceChannel,
+    SavedMessages,
+    DirectMessage,
+    Unknown,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -57,3 +61,24 @@ pub struct ChannelDefaultPermissions {
     pub deny: i32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DMChannel {
+    pub channel_type: ChannelType,
+    #[serde(rename = "_id")]
+    pub channel_id: ChannelId,
+    pub active: Option<Option<bool>>,
+    pub recipients: Option<Option<Vec<UserId>>>,
+    pub user: Option<Option<UserId>>
+}
+
+/*
+{
+	"channel_type": "DirectMessage",
+	"_id": "01G89DWNFY8YN9K6YVYGFQA23X",
+	"active": false,
+	"recipients": [
+		"01G7YDKSD4KBFXH1AYMJXGBYC4",
+		"01G2YC7K4SBXYKX56WJFJYRFYG"
+	]
+}
+*/

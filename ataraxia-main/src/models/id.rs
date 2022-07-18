@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::http::{Http, API_BASE_URL};
 
-use super::{message::{to_value, CreateMessage, Message}, user::User};
+use super::{message::{to_value, CreateMessage, Message}, user::User, channel::DMChannel};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserId (
@@ -34,6 +34,28 @@ impl UserId {
         .await?
         .json::<super::user::User>().await?;
 
+
+        Ok(res)
+    }
+
+    pub async fn get_user(&self, http: &Http) -> Result<User, reqwest::Error> {
+        let url = format!("{}/users/{}", API_BASE_URL, self.0);
+
+        let res = http.client.get(url)
+        .send()
+        .await?
+        .json::<super::user::User>().await?;
+        Ok(res)
+    }
+
+    pub async fn get_direct_message_channel(&self, http: &Http) -> Result<DMChannel, reqwest::Error> {
+        let url = format!("{}/users/{}/dm", API_BASE_URL, self.0);
+
+        let res = http.client.get(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .send()
+        .await?
+        .json::<DMChannel>().await?;
 
         Ok(res)
     }
