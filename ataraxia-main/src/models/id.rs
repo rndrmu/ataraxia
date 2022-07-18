@@ -137,6 +137,17 @@ impl MessageId {
         Ok(res.status().is_success())
  
     }
+
+    pub async fn remove_all_reactions(&self, http: &Http) -> Result<bool, reqwest::Error> {
+        let url = format!("{}/messages/{}/reactions", API_BASE_URL, self.0);
+
+        let res = http.client.delete(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .send()
+        .await?;
+
+        Ok(res.status().is_success())
+    }
     
 }
 
@@ -145,6 +156,17 @@ impl EmojiId {
         let url = format!("{}/channels/{}/messages/{}/reactions/{}", API_BASE_URL, channel_id.0, message_id.0, self.0);
 
         let res = http.client.put(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .send()
+        .await?;
+
+        Ok(res.status().is_success())
+    }
+
+    pub async fn remove_reaction(&self, http: &Http, channel_id: &ChannelId, message_id: &MessageId) -> Result<bool, reqwest::Error> {
+        let url = format!("{}/channels/{}/messages/{}/reactions/{}", API_BASE_URL, channel_id.0, message_id.0, self.0);
+
+        let res = http.client.delete(url)
         .header("x-bot-token", http.token.as_ref().unwrap())
         .send()
         .await?;
