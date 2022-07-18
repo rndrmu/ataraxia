@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::http::{Http, API_BASE_URL};
 
-use super::{message::{to_value, CreateMessage, Message}, user::User, channel::{DMChannel, Channel}};
+use super::{message::{to_value, CreateMessage, Message}, user::User, channel::{DMChannel, Channel, Invite}};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserId (
@@ -108,6 +108,22 @@ impl ChannelId {
         .send()
         .await?
         .json::<()>().await?;
+
+        Ok(res)
+    }
+
+    /// Creates an invite to this channel.
+    /// 
+    /// # Only usable with a session token. Bot Tokens receive an error here.
+    pub async fn create_invite(&self, http: &Http) -> Result<Invite, reqwest::Error> {
+
+        let url = format!("{}/channels/{}/invites", API_BASE_URL, self.0);
+
+        let res = http.client.post(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .send()
+        .await?
+        .json::<Invite>().await?;
 
         Ok(res)
     }

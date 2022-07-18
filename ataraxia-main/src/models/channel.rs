@@ -71,6 +71,17 @@ pub struct DMChannel {
     pub user: Option<Option<UserId>>
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Invite {
+    #[serde(rename = "type")]
+    pub target_type: Option<String>,
+    #[serde(rename = "_id")]
+    pub id: Option<String>,
+    pub server: Option<ServerId>,
+    pub creator: Option<UserId>,
+    pub channel: Option<ChannelId>,
+}
+
 /*
 {
 	"channel_type": "DirectMessage",

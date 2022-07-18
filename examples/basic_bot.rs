@@ -108,6 +108,9 @@ impl EventHandler for Handler {
             let dmresult = dm_channel.channel_id.send_message(&ctx.http, |r| {
                 r.content(":trol:")
             }).await;
+        } else if message.content == "!invite" {
+            let invite_res = message.channel_id.create_invite(&ctx.http).await;
+            println!("{:?}", invite_res);
         }
     }
 }
