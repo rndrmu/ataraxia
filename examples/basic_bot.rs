@@ -103,6 +103,11 @@ impl EventHandler for Handler {
         } else if message.content == "!react" {
             let reaction_result = EmojiId("01G7VX2M8TF9PE1J4HDVHYPH6M".to_string()).add_reaction(&ctx.http, &message.channel_id, &message.id).await;
             println!("{:?}", reaction_result);
+        } else if message.content == "!dm" {
+            let dm_channel = message.author.get_direct_message_channel(&ctx.http).await.unwrap();
+            let dmresult = dm_channel.channel_id.send_message(&ctx.http, |r| {
+                r.content(":trol:")
+            }).await;
         }
     }
 }
