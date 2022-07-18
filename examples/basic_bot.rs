@@ -7,9 +7,9 @@ use tokio;
 
 use ataraxia::{
     websocket::{Client, EventHandler},
-    models::{message::Message as RevoltMessage, ready::Ready},
+    models::{message::Message as RevoltMessage, ready::Ready, id::EmojiId},
     context::Context,
-    async_trait
+    async_trait,
 };
 
 struct Handler;
@@ -100,6 +100,9 @@ impl EventHandler for Handler {
             ctx.reply(&format!("{:?}", user)).await;
 
             println!("{:?}", user);
+        } else if message.content == "!react" {
+            let reaction_result = EmojiId("01G7VX2M8TF9PE1J4HDVHYPH6M".to_string()).add_reaction(&ctx.http, &message.channel_id, &message.id).await;
+            println!("{:?}", reaction_result);
         }
     }
 }

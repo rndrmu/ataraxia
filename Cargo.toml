@@ -1,8 +1,8 @@
 [workspace]
 members = [
     "ataraxia-main",
-    "ataraxia-voice"
-#"examples"
+    "ataraxia-voice",
+    "examples"
 ]
 
 keywords = ["discord", "api"]
