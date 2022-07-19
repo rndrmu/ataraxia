@@ -6,7 +6,7 @@ use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use crate::{models::{message::Message as RevoltMessage, ready::Ready}, context::Context, http::Http};
+use crate::{models::{message::Message as RevoltMessage, ready::Ready, gateway::{MessageUpdate, MessageDelete, MessageReact, MessageUnreact}}, context::Context, http::Http};
 
 #[derive(Clone)]
 pub struct Client {
@@ -45,6 +45,10 @@ pub trait EventHandler: Send + Sync + 'static {
 
     /// Dispatched when a message is received.
     async fn on_message(&self, context: Context, message: RevoltMessage);
+    async fn message_update(&self, context: Context, updated_message: MessageUpdate);
+    async fn message_delete(&self, context: Context, deleted_message: MessageDelete);
+    async fn message_react(&self, context: Context, reaction: MessageReact);
+    async fn message_unreact(&self, context: Context, reaction: MessageUnreact);
     /*async fn message_update(&self);
     async fn message_delete(&self);
     async fn channel_create(&self);
@@ -152,8 +156,8 @@ impl Socket {
     pub async fn handler(reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
         writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
         token: Arc<String>,
-        event: Arc<dyn EventHandler>)
-    {
+        event: Arc<dyn EventHandler>
+    ) {
             while let Some(message) = reader.lock().await.next().await {
                 match message {
                     Ok(message) => {
@@ -194,7 +198,41 @@ impl Socket {
                                         event.on_message(Context::new(&token, &json_clone.to_string()), message).await;
                                     }
                                 },
-                                Some(&_) => {},
+
+                                Some("MessageUpdate") => {
+                                    let message: Result<MessageUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.message_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("MessageDelete") => {
+                                    let message: Result<MessageDelete, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.message_delete(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("MessageReact") => {
+                                    println!("Reacted");
+                                    let message: Result<MessageReact, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.message_react(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                    
+                                },
+
+                                Some("MessageUnreact") => {
+                                    println!("MessageUnreact");
+                                    let message: Result<MessageUnreact, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.message_unreact(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some(&_) => {
+                                    info!("[GATEWAY_RECV] Received Unknown Message Type: {} -> {}", json["type"].as_str().unwrap(), json);
+                                },
                                 None => {},
                             }
                         }

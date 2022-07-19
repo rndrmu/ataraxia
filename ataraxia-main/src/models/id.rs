@@ -24,6 +24,7 @@ pub struct ServerId (
     pub String
 );
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct EmojiId (
     pub String
 );
@@ -114,7 +115,7 @@ impl ChannelId {
 
     /// Creates an invite to this channel.
     /// 
-    /// # Only usable with a session token. Bot Tokens receive an error here.
+    /// ### Only usable with a session token. Bot Tokens receive an error here.
     pub async fn create_invite(&self, http: &Http) -> Result<Invite, reqwest::Error> {
 
         let url = format!("{}/channels/{}/invites", API_BASE_URL, self.0);

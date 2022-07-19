@@ -7,7 +7,7 @@ use tokio;
 
 use ataraxia::{
     websocket::{Client, EventHandler},
-    models::{message::Message as RevoltMessage, ready::Ready, id::EmojiId},
+    models::{message::Message as RevoltMessage, ready::Ready, id::EmojiId, gateway::{MessageDelete, MessageUpdate, MessageUnreact, MessageReact}},
     context::Context,
     async_trait,
 };
@@ -101,11 +101,11 @@ impl EventHandler for Handler {
 
             println!("{:?}", user);
         } else if message.content == "!react" {
-            let reaction_result = EmojiId("01G7VX2M8TF9PE1J4HDVHYPH6M".to_string()).add_reaction(&ctx.http, &message.channel_id, &message.id).await;
+            let reaction_result = EmojiId("🇪🇺".to_string()).add_reaction(&ctx.http, &message.channel_id, &message.id).await;
             println!("{:?}", reaction_result);
         } else if message.content == "!dm" {
             let dm_channel = message.author.get_direct_message_channel(&ctx.http).await.unwrap();
-            let dmresult = dm_channel.channel_id.send_message(&ctx.http, |r| {
+            let _dmresult = dm_channel.channel_id.send_message(&ctx.http, |r| {
                 r.content(":trol:")
             }).await;
         } else if message.content == "!invite" {
@@ -113,6 +113,23 @@ impl EventHandler for Handler {
             println!("{:?}", invite_res);
         }
     }
+
+    async fn message_delete(&self, _ctx: Context, _message: MessageDelete) {
+        println!("Message Deleted in {:?}/{:?}", _message.channel, _message.id);
+    }
+
+    async fn message_update(&self, _ctx: Context, _message: MessageUpdate) {
+        println!("Message Updated!");
+    }
+
+    async fn message_unreact(&self, _ctx: Context, _message: MessageUnreact) {
+        println!("Message Unreacted!");
+    }
+
+    async fn message_react(&self, _ctx: Context, _message: MessageReact) {
+        println!("{:?} reacted in channel {:?} with {:?}", _message.user_id, _message.message_id ,_message.emoji);
+    }
+
 }
 
 
