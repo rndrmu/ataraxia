@@ -1,13 +1,18 @@
-
-
-
-use std::sync::Arc;
-
 use tokio;
 
 use ataraxia::{
     websocket::{Client, EventHandler},
-    models::{message::Message as RevoltMessage, ready::Ready, id::EmojiId, gateway::{MessageDelete, MessageUpdate, MessageUnreact, MessageReact}},
+    models::{
+        message::Message,
+        ready::Ready,
+        id::EmojiId,
+        gateway::{
+            MessageDelete,
+            MessageUpdate,
+            MessageUnreact,
+            MessageReact
+        },
+    },
     context::Context,
     async_trait,
 };
@@ -31,7 +36,7 @@ impl EventHandler for Handler {
     /// ### How to use Arguments
     /// To use arguments you need to somehow split the message into a command and the arguments
     /// See the `!join` command for an example
-    async fn on_message(&self, ctx: Context, message: RevoltMessage) {
+    async fn on_message(&self, ctx: Context, message: Message) {
         println!("{}", message);
 
         if message.content == "!ping" {
@@ -95,7 +100,7 @@ impl EventHandler for Handler {
             let chn = ctx.get_channel(&message.channel_id.0).await.unwrap();
             println!("{:?}", chn);
         } else if message.content == "!me" {
-            let user = message.author.get_author_user(&ctx.http).await.unwrap();
+            let user = message.author.get_user(&ctx.http).await.unwrap();
 
             ctx.reply(&format!("{:?}", user)).await;
 
@@ -108,9 +113,15 @@ impl EventHandler for Handler {
             let _dmresult = dm_channel.channel_id.send_message(&ctx.http, |r| {
                 r.content(":trol:")
             }).await;
-        } else if message.content == "!invite" {
-            let invite_res = message.channel_id.create_invite(&ctx.http).await;
-            println!("{:?}", invite_res);
+        } else if message.content == "!massdelete" {
+            let amt_to_delete = 10;
+            let mess = message.channel_id.get_messages(&ctx.http, amt_to_delete).await.unwrap();
+            let msg_ids = mess.iter().map(|m| m.id.clone()).collect::<Vec<_>>();
+            println!("{:?}", mess);
+            let del_res = message.channel_id.bulk_delete_messages(&ctx.http, msg_ids).await;
+            message.channel_id.send_message(&ctx.http, |r| {
+                r.content(format!("Deleted {} messages -> Result: {:?}", amt_to_delete, del_res))
+            }).await.unwrap();
         }
     }
 
@@ -153,8 +164,9 @@ async fn main() {
     // Handler is the Handler Struct
     // which implements the EventHandler trait
     // and acts as "Event Loop" for the client
-    // to use the default public instance of revolt, pass None as second parameter
-    // otherwise do Some("https://delta.revolt.chat") where delta.revolt.chat is your delta instance
+    // to use the default public instance of revolt, simply don't call `set_api_url` 
+    // or call it with `https://api.revolt.chat` as the argument
+
     let mut client = Client::new(token)
     .event_handler(Handler)
     .set_api_url("https://api.revolt.chat")

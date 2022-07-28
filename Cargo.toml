@@ -2,6 +2,7 @@
 members = [
     "ataraxia-main",
     "ataraxia-voice",
+    "ataraxia-macros",
     "examples"
 ]
 
