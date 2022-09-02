@@ -6,9 +6,9 @@ use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
-use crate::{models::{message::Message as RevoltMessage, ready::Ready, gateway::{MessageUpdate, MessageDelete, MessageReact, MessageUnreact}}, context::Context, http::Http};
+use crate::{models::{message::Message as RevoltMessage, ready::Ready, gateway::{message::MessageUpdate, message::MessageDelete, message::MessageReact, message::MessageUnreact, message::MessageRemoveReactions, channel::ChannelCreate}, gateway::{channel::{ChannelUpdate, ChannelDelete, ChannelGroupJoin, ChannelGroupLeave, ChannelStartTyping, ChannelStopTyping, ChannelAck}, server::{ServerUpdate, ServerDelete, ServerMemberUpdate, ServerMemberJoin, ServerMemberLeave, ServerRoleUpdate, ServerRoleDelete}, user::{UserUpdate, UserRelationship}}}, context::Context, http::Http};
 
-#[derive(Clone)]
+#[derive()]
 pub struct Client {
     /// Your bot's Token
     /// 
@@ -23,7 +23,7 @@ pub struct Client {
 }
 
 
-#[derive(Clone)]
+#[derive()]
 struct Socket {
     socket_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
@@ -44,30 +44,47 @@ pub trait EventHandler: Send + Sync + 'static {
     async fn ready(&self, context: Context, ready: Ready);
 
     /// Dispatched when a message is received.
-    async fn on_message(&self, context: Context, message: RevoltMessage);
-    async fn message_update(&self, context: Context, updated_message: MessageUpdate);
-    async fn message_delete(&self, context: Context, deleted_message: MessageDelete);
-    async fn message_react(&self, context: Context, reaction: MessageReact);
-    async fn message_unreact(&self, context: Context, reaction: MessageUnreact);
-    /*async fn message_update(&self);
-    async fn message_delete(&self);
-    async fn channel_create(&self);
-    async fn channel_update(&self);
-    async fn channel_delete(&self);
-    async fn channel_group_join(&self);
-    async fn channel_group_leave(&self);
-    async fn channel_start_typing(&self);
-    async fn channel_stop_typing(&self);
-    async fn channel_ack(&self);
-    async fn server_update(&self);
-    async fn server_delete(&self);
-    async fn server_member_update(&self);
-    async fn server_member_join(&self);
-    async fn server_member_leave(&self);
-    async fn server_role_update(&self);
-    async fn server_role_delete(&self);
-    async fn user_update(&self);
-    async fn user_relationship(&self);*/
+    async fn on_message(&self,     _context: Context, _message: RevoltMessage) {}
+    async fn message_update(&self, _context: Context, _updated_message: MessageUpdate) {}
+    async fn message_delete(&self, _context: Context, _deleted_message: MessageDelete) {}
+
+    
+    async fn message_react(&self,  _context: Context, _reaction: MessageReact) {}
+    async fn message_unreact(&self, _context: Context, _reaction: MessageUnreact) {}
+    async fn message_remove_reactions(&self, _context: Context, _reaction: MessageRemoveReactions) {}
+
+
+    async fn channel_create(&self, _context: Context, _channel: ChannelCreate) {}
+    async fn channel_update(&self, _context: Context, _channel: ChannelUpdate) {}
+    async fn channel_delete(&self, _context: Context, _channel: ChannelDelete) {}
+    
+    
+    async fn channel_group_join(&self, _context: Context, _channel: ChannelGroupJoin) {}
+    async fn channel_group_leave(&self, _context: Context, _channel: ChannelGroupLeave) {}
+    
+    
+    async fn channel_start_typing(&self, _context: Context, _cst: ChannelStartTyping) {}
+    async fn channel_stop_typing(&self, _context: Context, _cst: ChannelStopTyping) {}
+    
+    
+    async fn channel_ack(&self, _context: Context, _ack: ChannelAck) {}
+    
+    
+    async fn server_update(&self, _context: Context, _server_data: ServerUpdate) {}
+    async fn server_delete(&self, _context: Context, _server_data: ServerDelete) {}
+    
+    
+    async fn server_member_update(&self, _context: Context, _server_member_data: ServerMemberUpdate) {}
+    async fn server_member_join(&self, _context: Context, _server_member_data: ServerMemberJoin) {}
+    async fn server_member_leave(&self, _context: Context, _server_member_data: ServerMemberLeave) {}
+    
+    
+    async fn server_role_update(&self, _context: Context, _server_role_data: ServerRoleUpdate) {}
+    async fn server_role_delete(&self, _context: Context, _server_role_data: ServerRoleDelete) {}
+    
+    
+    async fn user_update(&self, _context: Context, _user_data: UserUpdate) {}
+    async fn user_relationship(&self, _context: Context, _user_data: UserRelationship) {}
 }
 
 
@@ -214,7 +231,6 @@ impl Socket {
                                 },
 
                                 Some("MessageReact") => {
-                                    println!("Reacted");
                                     let message: Result<MessageReact, serde_json::Error> = serde_json::from_value(json);
                                     if let Ok(message) = message {
                                         event.message_react(Context::new(&token, &json_clone.to_string()), message).await;
@@ -223,12 +239,159 @@ impl Socket {
                                 },
 
                                 Some("MessageUnreact") => {
-                                    println!("MessageUnreact");
                                     let message: Result<MessageUnreact, serde_json::Error> = serde_json::from_value(json);
                                     if let Ok(message) = message {
                                         event.message_unreact(Context::new(&token, &json_clone.to_string()), message).await;
                                     }
                                 },
+
+                                Some("MessageRemoveReactions") => {
+                                    let message: Result<MessageRemoveReactions, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.message_remove_reactions(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelCreate") => {
+                                    let message: Result<ChannelCreate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_create(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelUpdate") => {
+                                    let message: Result<ChannelUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelDelete") => {
+                                    let message: Result<ChannelDelete, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_delete(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                /* Some("ServerCreate") => {
+                                    let message: Result<ServerCreate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_create(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                }, */
+
+                                Some("ServerUpdate") => {
+                                    let message: Result<ServerUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerDelete") => {
+                                    let message: Result<ServerDelete, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_delete(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelGroupJoin") => {
+                                    let message: Result<ChannelGroupJoin, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_group_join(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelGroup") => {
+                                    let message: Result<ChannelGroupLeave, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_group_leave(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelStartTyping") => {
+                                    let message: Result<ChannelStartTyping, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_start_typing(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelStopTyping") => {
+                                    let message: Result<ChannelStopTyping, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_stop_typing(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ChannelAck") => {
+                                    let message: Result<ChannelAck, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.channel_ack(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerUpdate") => {
+                                    let message: Result<ServerUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerDelete") => {
+                                    let message: Result<ServerDelete, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_delete(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerMemberJoin") => {
+                                    let message: Result<ServerMemberJoin, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_member_join(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerMemberLeave") => {
+                                    let message: Result<ServerMemberLeave, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_member_leave(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerMemberUpdate") => {
+                                    let message: Result<ServerMemberUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_member_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerRoleUpdate") => {
+                                    let message: Result<ServerRoleUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_role_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("ServerRoleDelete") => {
+                                    let message: Result<ServerRoleDelete, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.server_role_delete(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("UserUpdate") => {
+                                    let message: Result<UserUpdate, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.user_update(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
+                                Some("UserRelationship") => {
+                                    let message: Result<UserRelationship, serde_json::Error> = serde_json::from_value(json);
+                                    if let Ok(message) = message {
+                                        event.user_relationship(Context::new(&token, &json_clone.to_string()), message).await;
+                                    }
+                                },
+
 
                                 Some(&_) => {
                                     info!("[GATEWAY_RECV] Received Unknown Message Type: {} -> {}", json["type"].as_str().unwrap(), json);

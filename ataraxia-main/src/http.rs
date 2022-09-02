@@ -1,7 +1,7 @@
 use reqwest::Client;
 
 use crate::models::{user::User, id::UserId};
-use super::models::server::ServerConfig;
+use super::models::delta::ServerConfig;
 
 use std::sync::Arc;
 
@@ -9,9 +9,12 @@ use std::sync::Arc;
 pub static API_BASE_URL: &str = "https://api.revolt.chat";
 
 
+/// Reusable Reqwest Client, used for all requests.
 #[derive(Clone)]
 pub struct Http {
+    /// The actual reqwest Client.
     pub client: Arc<Client>,
+    /// The bot's token or your session Token.
     pub token: Option<String>,
 }
 
@@ -42,6 +45,7 @@ impl Http
         }
     }
 
+    /// Gets the server config.
     pub async fn get_server_config(&self) -> Result<ServerConfig, reqwest::Error> {
         let res = self.client.get(format!("{}", API_BASE_URL))
         .send()
@@ -51,9 +55,11 @@ impl Http
         Ok(res)
     }
 
+    /// Raw method to get a User from the API.
+    /// 
+    ///  Can be used to get the Authorized User ig.
     pub async fn get_user(&self, user: UserId) -> Result<User, reqwest::Error> {
-        let client = Client::new();
-        let res = client.get(format!("{}/users/{}", API_BASE_URL, user.0))
+        let res = self.client.get(format!("{}/users/{}", API_BASE_URL, user.0))
         .header("x-bot-token", &self.token.clone().unwrap())
         .send()
         .await?

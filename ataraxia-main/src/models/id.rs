@@ -35,6 +35,12 @@ pub struct EmojiId (
     pub String
 );
 
+/// An Identifier for a Role.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RoleId (
+    pub String
+);
+
 impl UserId {
 
     /// Fetch a User from the API.
@@ -212,6 +218,30 @@ impl MessageId {
         .await?;
 
         Ok(res.status().is_success())
+    }
+
+
+    /// Edit a Message.
+    pub async fn edit_message<F>(&self, http: &Http, channel_id: &ChannelId, f: F) -> Result<Message, reqwest::Error>
+    where
+        F: FnOnce(&mut CreateMessage) -> &mut CreateMessage,
+    {
+        let mut message = CreateMessage::default();
+        f(&mut message);
+
+        let json = to_value(message).unwrap(); // this should never fail :^) 
+
+        let url = format!("{}/channels/{}/messages/{}", API_BASE_URL, channel_id.0 ,self.0);
+
+        let res = http.client.patch(url)
+        .header("x-bot-token", http.token.as_ref().unwrap())
+        .json(&json)
+        .send()
+        .await?
+        .json::<Message>()
+        .await?;
+
+        Ok(res)
     }
     
 }

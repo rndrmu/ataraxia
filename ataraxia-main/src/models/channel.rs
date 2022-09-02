@@ -82,14 +82,18 @@ pub struct Invite {
     pub channel: Option<ChannelId>,
 }
 
-/*
-{
-	"channel_type": "DirectMessage",
-	"_id": "01G89DWNFY8YN9K6YVYGFQA23X",
-	"active": false,
-	"recipients": [
-		"01G7YDKSD4KBFXH1AYMJXGBYC4",
-		"01G2YC7K4SBXYKX56WJFJYRFYG"
-	]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PartialChannel {
+    pub channel_type: Option<ChannelType>,
+    #[serde(rename = "_id")]
+    pub channel_id: Option<ChannelId>,
+    pub server_id: Option<ServerId>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub icon: Option<ChannelIcon>,
+    pub default_permissions: Option<ChannelDefaultPermissions>,
+    pub last_message_id: Option<String>,
+    pub nsfw: Option<bool>,
+    #[serde(flatten)]
+    pub role_permissions: Option<HashMap<String, ChannelDefaultPermissions>>,
 }
-*/

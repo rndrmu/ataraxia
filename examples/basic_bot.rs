@@ -6,12 +6,12 @@ use ataraxia::{
         message::Message,
         ready::Ready,
         id::EmojiId,
-        gateway::{
+        gateway::{message::{
             MessageDelete,
             MessageUpdate,
             MessageUnreact,
-            MessageReact
-        },
+            MessageReact, MessageRemoveReactions
+        }, channel::{ChannelCreate, ChannelUpdate}},
     },
     context::Context,
     async_trait,
@@ -140,6 +140,9 @@ impl EventHandler for Handler {
     async fn message_react(&self, _ctx: Context, _message: MessageReact) {
         println!("{:?} reacted in channel {:?} with {:?}", _message.user_id, _message.message_id ,_message.emoji);
     }
+
+    async fn message_remove_reactions(&self, context: Context, reaction: MessageRemoveReactions) {}
+    
 
 }
 

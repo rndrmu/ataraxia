@@ -90,7 +90,17 @@ pub struct CreateMasqueradeMessage {
     avatar: Option<String>,
 }
 
-
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PartialMessage {
+    // all fields are optional
+    pub content: Option<String>,
+    pub nonce: Option<String>,
+    pub mentions: Option<Vec<String>>,
+    pub attachments: Option<Vec<MessageAttachments>>,
+    pub edited: Option<String>,
+    pub embed: Option<Vec<Embed>>
+    
+}
 
 
 impl CreateMessage {

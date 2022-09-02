@@ -24,6 +24,18 @@ pub struct UserStatus {
 pub enum UserPresence {
     Online,
     Idle,
-    Busy,
-    
+    Busy,   
+}
+
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PartialUser {
+    #[serde(rename = "_id")]
+    pub id: Option<UserId>,
+    pub username: Option<String>,
+    pub avatar: Option<UserAvatar>,
+    pub badges: Option<u16>,
+    pub status: Option<UserStatus>,
+    pub relationship: Option<String>,
+    pub online: Option<bool>,
 }
