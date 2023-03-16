@@ -20,3 +20,14 @@ pub mod context;
 /// [`EventHandler`]: crate::websocket::EventHandler
 pub use async_trait::async_trait;
 
+
+pub mod macros {
+    //! Procedural macros used in ataraxia, like [`command`]
+    #[doc(inline)]
+    pub use ataraxia_macros::*;
+}
+
+#[doc(no_inline)]
+pub use {
+    macros::*
+};

@@ -185,4 +185,14 @@ async fn main() {
 
 }
 
+type CommandResult = Result<(), Box<dyn std::error::Error + Send + Sync>>; 
 
+// A command function looks like
+// async fn command_name(ctx: Context, message: Message) -> CommandResult { ... }
+// the `#[command]` attribute is required to register the function as a command
+
+#[ataraxia::command(prefix_command)]
+async fn ping(ctx: Context, message: Message) -> CommandResult {
+    ctx.reply("Pong!").await;
+    Ok(())
+}

@@ -1,10 +1,9 @@
 [workspace]
 members = [
-    "ataraxia-main",
+    "ataraxia",
     "ataraxia-voice",
-    "ataraxia-macros",
     "examples"
 ]
 
-keywords = ["discord", "api"]
+keywords = ["revolt", "api"]
 publish = true

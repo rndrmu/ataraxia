@@ -1,0 +1,16 @@
+[package]
+name = "ataraxia_macros"
+version = "0.1.0" # remember to update the version
+edition = "2018"
+description = "Internal macro implementation crate of ataraxia"
+license = "MIT"
+repository = "https://github.com/rndrmu/ataraxia"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "1.0.64", features = ["full", "fold"] }
+quote = "1.0.9"
+proc-macro2 = "1.0.24"
+darling = "0.14.1"
