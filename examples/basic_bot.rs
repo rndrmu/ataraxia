@@ -33,7 +33,7 @@ impl EventHandler for Handler {
 
     /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
     /// 
-    /// ### How to use Arguments
+    /// ## How to use Arguments
     /// To use arguments you need to somehow split the message into a command and the arguments
     /// See the `!join` command for an example
     async fn on_message(&self, ctx: Context, message: Message) {
@@ -158,6 +158,7 @@ async fn main() {
     
     tracing_subscriber::fmt::init();
 
+    /// Get the token from the environment
     let token = std::env::var("REVOLT_TOKEN").expect("token");
 
 
@@ -185,13 +186,13 @@ async fn main() {
 
 }
 
+// Helper type alias for commands
 type CommandResult = Result<(), Box<dyn std::error::Error + Send + Sync>>; 
 
 // A command function looks like
 // async fn command_name(ctx: Context, message: Message) -> CommandResult { ... }
-// the `#[command]` attribute is required to register the function as a command
 
-#[ataraxia::command(prefix_command)]
+#[ataraxia::command]
 async fn ping(ctx: Context, message: Message) -> CommandResult {
     ctx.reply("Pong!").await;
     Ok(())
