@@ -2,6 +2,10 @@
     "deepscan.enable": true,
     "rust-analyzer.linkedProjects": [
         "./ataraxia/macros/Cargo.toml",
-        "./ataraxia/macros/Cargo.toml"
+        "./ataraxia/macros/Cargo.toml",
+        "./ataraxia/Cargo.toml",
+        "./ataraxia/Cargo.toml",
+        "./ataraxia/Cargo.toml",
+        "./ataraxia/Cargo.toml"
     ]
 }

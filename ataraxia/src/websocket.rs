@@ -27,6 +27,8 @@ pub struct Client {
 struct Socket {
     socket_writer: Arc<Mutex<SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
     socket_reader: Arc<Mutex<SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
+    receiver: tokio::sync::mpsc::Receiver<Message>,
+    sender: tokio::sync::mpsc::Sender<Message>,
     event_handler: Arc<dyn EventHandler>,
 }
 
