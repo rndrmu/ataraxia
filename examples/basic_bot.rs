@@ -1,7 +1,7 @@
 use tokio;
 
 use ataraxia::{
-    websocket::{Client, EventHandler},
+    client::{Client, EventHandler},
     models::{
         message::Message,
         ready::Ready,
@@ -92,7 +92,6 @@ impl EventHandler for Handler {
 
             let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
             println!("Joining voice channel {}", voice_channel_id);
-            let _vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
             ctx.reply("Okay, i joined the channel!").await;
 
 

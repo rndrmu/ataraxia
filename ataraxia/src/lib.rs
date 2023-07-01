@@ -8,10 +8,11 @@
 //! when a [`Event::Message`] is received. Each handler is given a
 //! [`Context`], giving information about the event and some helpful functions. 
 
-pub mod websocket;
+pub mod client;
 pub mod http;
 pub mod models;
 pub mod context;
+pub mod gateway;
 
 
 /// Re-exports the `async_trait` crate. 
