@@ -2,7 +2,7 @@
 use std::{sync::{Arc}, time::Duration};
 use tracing::{debug, info, error};
 
-use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
+use futures_util::{SinkExt, StreamExt, stream::SplitSink};
 use serde_json::json;
 use tokio::{net::TcpStream, spawn, sync::{Mutex, mpsc::{UnboundedSender, UnboundedReceiver}}};
 use crate::{models::{message::Message as RevoltMessage, ready::Ready, gateway::{message::MessageUpdate, message::MessageDelete, message::MessageReact, message::MessageUnreact, message::MessageRemoveReactions, channel::ChannelCreate}, gateway::{channel::{ChannelUpdate, ChannelDelete, ChannelGroupJoin, ChannelGroupLeave, ChannelStartTyping, ChannelStopTyping, ChannelAck}, server::{ServerUpdate, ServerDelete, ServerMemberUpdate, ServerMemberJoin, ServerMemberLeave, ServerRoleUpdate, ServerRoleDelete}, user::{UserUpdate, UserRelationship}}}, context::Context, http::Http, client::EventHandler};
@@ -51,15 +51,36 @@ impl Shard {
          let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
 
          // Spawn a task to receive messages from the reader and send them to the channel
-        let mut socket_clone = self.ws;
+        let (mut write, mut read) = self.ws.split();
          tokio::spawn(async move {
-             while let Some(Ok(message)) = socket_clone.next().await {
+             while let Some(Ok(message)) = read.next().await {
                  // Non-blocking send operation
+
+
                  if let Err(e) = sender.send(message) {
                      error!("Error sending message: {:?}", e);
                  }
              }
          });
+
+        tokio::spawn(async move {
+             loop {
+                tokio::time::sleep(Duration::from_secs(15)).await;
+
+                let heartbeat = json!({
+                    "type": "Ping",
+                    "data": std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis()
+                }).to_string();
+
+                info!("Sending heartbeat: {}", heartbeat);
+
+                write.send(Message::Text(heartbeat)).await.unwrap_or_else(|e| {
+                    error!("Error sending message: {:?}", e);
+                });
+             }
+         });
+
+
 
         // Spawn a task to process the messages received on the channel
         let handler = self.event_handler.clone();
@@ -69,6 +90,8 @@ impl Shard {
         }).await.unwrap_or_else(|e| {
             error!("Error spawning task: {:?}", e);
         });
+
+
     }
 
     async fn authenticate(&mut self, token: String) {
@@ -78,11 +101,7 @@ impl Shard {
         }).to_string())).await.unwrap_or_else(|e| {
             error!("Error sending message: {:?}", e);
         });
-    }
-
-
-
-       
+    }       
 }
 
 
@@ -96,22 +115,29 @@ pub async fn handle_events(
                     if message.is_text() {
                         let json: serde_json::Value = serde_json::from_str(&message.to_string()).unwrap();
                         let json_clone = json.clone();
-                        info!("Received message: {:?}", json);
+                        
+                        debug!("Received message: {}", json.to_string());
                         
                         match json["type"].as_str() {
                             Some("Ready") => {
                                 let ready: Ready = serde_json::from_value(json).unwrap();
                                 event.ready(Context::new(&token, &message.to_string()), ready).await;
-
+                                info!("Ready");
                                 
                             },
                             
                             Some("Authenticated") => {
                                 event.authenticated().await;
-
-                                // spawn heartbeat thread 
+                                info!("Authenticated");
                                 
                             },
+
+                            Some("Pong") => {
+                                //event.pong().await;
+                                info!("Pong");
+                                
+                            },
+
                             Some("Message") => {
                                 let message: JsonParseResult<crate::models::message::Message> = serde_json::from_value(json);
                                 if let Ok(message) = message {

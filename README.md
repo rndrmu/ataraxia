@@ -1,5 +1,6 @@
 # ataraxia
 A minimal barebones API Wrapper for the [revolt.chat API](https://revolt.chat)
+Heavily influenced by [Serenity](https://github.com/serenity-rs/serenity)
 
 ## A basic Ping-Pong Bot looks like
 
