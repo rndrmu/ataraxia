@@ -4,3 +4,6 @@ members = [
     "ataraxia-voice",
     "examples"
 ]
+
+keywords = ["revolt", "api"]
+publish = true

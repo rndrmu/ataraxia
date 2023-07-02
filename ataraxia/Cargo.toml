@@ -1,22 +1,42 @@
 [package]
 name = "ataraxia"
+authors = ["rndrmu"]
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/rndrmu/ataraxia.git"
+homepage = "https://github.com/rndrmu/ataraxia"
+license = "BSD-3-Clause"
+description = "A Rust Wrapper for the Revolt API"
+readme = "../README.md"
+keywords = ["revolt", "api"]
+publish = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[features]
+voice = ["dep:ataraxia-voice"]
 
 [dependencies]
-reqwest = "0.11.10"
+reqwest = { version = "0.11.10", features = ["json"] }
 url = "2.2.2"
 futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
 futures-channel = "0.3.21"
 serde = { version = "1.0.130", default-features = false, features = ["derive"] }
 serde_json = "1.0.67"
 dotenv = "0.13.0"
-tokio-tungstenite = { version = "0.17.1", default-features = false, features = ["native-tls", "connect"]}
 async-trait = "0.1.51"
+tower = { version = "0.4.12", features = ["full"]}
+tracing = "0.1.34"
+ataraxia_macros = { path = "macros" }
+
+# for the revolt vortex voice chat 
+ataraxia-voice = { path = "../ataraxia-voice", optional = true, version = "0.1.0" }
+
 
 [dependencies.tokio]
 version = "1"
 default-features = true
 features = ["fs", "macros", "rt-multi-thread", "io-util"]
+
+[dependencies.async-tungstenite]
+default-features = false
+features = ["tokio-runtime", "tokio-native-tls"]
+version = "0.22.2"
