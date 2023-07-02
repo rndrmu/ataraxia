@@ -6,7 +6,7 @@
 use std::{sync::{Arc}};
 use serde::{Deserialize, Serialize};
 use futures_util::{SinkExt, StreamExt, stream::{SplitSink, SplitStream}};
-use serde_json::json;
+
 use tokio::{net::TcpStream, sync::Mutex};
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async, tungstenite::Message};
 
@@ -52,7 +52,7 @@ impl VoiceClient {
     }
 
 
-    pub async fn init(&mut self, channel_id: &str) {
+    pub async fn init(&mut self, _channel_id: &str) {
         let websocket = Socket::new().await;
         self.socket = Some(websocket);
         let conn = self.socket.clone().unwrap();//.connect(&self.token, channel_id).await;
@@ -262,12 +262,12 @@ impl Socket {
 
                                     // split packet into chunks of RTP_PACKET_SIZE
                                     const RTP_PACKET_SIZE: usize = 1200;
-                                    let mut packet_chunks = packet.chunks(RTP_PACKET_SIZE);
+                                    let packet_chunks = packet.chunks(RTP_PACKET_SIZE);
 
 
-                                    while let Some(payload) = packet_chunks.next() {
+                                    for payload in packet_chunks {
 
-                                        self.udp_socket.lock().await.send(&payload).await.unwrap();
+                                        self.udp_socket.lock().await.send(payload).await.unwrap();
                                     }
                                         
 

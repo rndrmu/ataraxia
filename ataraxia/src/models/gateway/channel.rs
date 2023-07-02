@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::models::{id::*, channel::PartialChannel};
-use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ChannelStartTyping {

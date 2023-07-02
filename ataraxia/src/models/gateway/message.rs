@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::models::{id::*, message::{Embed, PartialMessage}};
+use crate::models::{id::*, message::PartialMessage};
 
 use super::GatewayEvent;
 

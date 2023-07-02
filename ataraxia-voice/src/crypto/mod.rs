@@ -38,7 +38,7 @@ pub const KEY_LENGTH: usize = 16;
  */
 
 pub fn encode_base64(data: &[u8]) -> String {
-    base64::encode(&data)
+    base64::encode(data)
 }
 
 
@@ -205,9 +205,9 @@ fn generate_counter(
 }
 
 fn generate_hmac_auth_tag(
-    key: &[u8],
-    input: &[u8],
-    roc: u32, 
+    _key: &[u8],
+    _input: &[u8],
+    _roc: u32, 
 ) {
 
 }

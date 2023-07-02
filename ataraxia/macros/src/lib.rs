@@ -14,6 +14,6 @@ pub fn command(args: proc_macro::TokenStream, function: proc_macro::TokenStream)
     println!("args: {:#?}", args);
     println!("function: {:#?}", function);
 
-    return function.into_token_stream().into();
+    function.into_token_stream().into()
 
 }

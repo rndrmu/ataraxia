@@ -1,4 +1,4 @@
-use tokio;
+
 
 use ataraxia::{
     client::{Client, EventHandler},
@@ -11,7 +11,7 @@ use ataraxia::{
             MessageUpdate,
             MessageUnreact,
             MessageReact, MessageRemoveReactions
-        }, channel::{ChannelCreate, ChannelUpdate}},
+        }},
     },
     context::Context,
     async_trait,
@@ -90,7 +90,7 @@ impl EventHandler for Handler {
         } else if message.content.starts_with("!join") {
 
 
-            let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
+            let voice_channel_id = message.content.split(' ').collect::<Vec<&str>>()[1];
             println!("Joining voice channel {}", voice_channel_id);
             ctx.reply("Okay, i joined the channel!").await;
 
@@ -140,7 +140,7 @@ impl EventHandler for Handler {
         println!("{:?} reacted in channel {:?} with {:?}", _message.user_id, _message.message_id ,_message.emoji);
     }
 
-    async fn message_remove_reactions(&self, context: Context, reaction: MessageRemoveReactions) {}
+    async fn message_remove_reactions(&self, _context: Context, _reaction: MessageRemoveReactions) {}
     
 
 }
@@ -192,7 +192,7 @@ type CommandResult = Result<(), Box<dyn std::error::Error + Send + Sync>>;
 // async fn command_name(ctx: Context, message: Message) -> CommandResult { ... }
 
 #[ataraxia::command]
-async fn ping(ctx: Context, message: Message) -> CommandResult {
+async fn ping(ctx: Context, _message: Message) -> CommandResult {
     ctx.reply("Pong!").await;
     Ok(())
 }

@@ -2,13 +2,13 @@
 use std::{sync::{Arc}, time::Duration};
 use tracing::{debug, info, error};
 
-use futures_util::{SinkExt, StreamExt, stream::SplitSink};
+use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
-use tokio::{net::TcpStream, spawn, sync::{Mutex, mpsc::{UnboundedSender, UnboundedReceiver}}};
-use crate::{models::{message::Message as RevoltMessage, ready::Ready, gateway::{message::MessageUpdate, message::MessageDelete, message::MessageReact, message::MessageUnreact, message::MessageRemoveReactions, channel::ChannelCreate}, gateway::{channel::{ChannelUpdate, ChannelDelete, ChannelGroupJoin, ChannelGroupLeave, ChannelStartTyping, ChannelStopTyping, ChannelAck}, server::{ServerUpdate, ServerDelete, ServerMemberUpdate, ServerMemberJoin, ServerMemberLeave, ServerRoleUpdate, ServerRoleDelete}, user::{UserUpdate, UserRelationship}}}, context::Context, http::Http, client::EventHandler};
+use tokio::sync::mpsc::UnboundedReceiver;
+use crate::{models::{ready::Ready, gateway::{message::MessageUpdate, message::MessageDelete, message::MessageReact, message::MessageUnreact, message::MessageRemoveReactions, channel::ChannelCreate}, gateway::{channel::{ChannelUpdate, ChannelDelete, ChannelGroupJoin, ChannelGroupLeave, ChannelStartTyping, ChannelStopTyping, ChannelAck}, server::{ServerUpdate, ServerDelete, ServerMemberUpdate, ServerMemberJoin, ServerMemberLeave, ServerRoleUpdate, ServerRoleDelete}, user::{UserUpdate, UserRelationship}}}, context::Context, http::Http, client::EventHandler};
 
 use async_tungstenite::tungstenite::*;
-use async_tungstenite::{tokio::{ConnectStream, connect_async}, tungstenite::connect};
+use async_tungstenite::tokio::ConnectStream;
 use async_tungstenite::WebSocketStream;
 
 pub type WsStream = WebSocketStream<ConnectStream>;
@@ -258,6 +258,7 @@ pub async fn handle_events(
                                 }
                             },
 
+                            #[allow(unreachable_patterns)]
                             Some("ServerUpdate") => {
                                 let message: JsonParseResult<ServerUpdate> = serde_json::from_value(json);
                                 if let Ok(message) = message {
@@ -265,6 +266,7 @@ pub async fn handle_events(
                                 }
                             },
 
+                            #[allow(unreachable_patterns)]
                             Some("ServerDelete") => {
                                 let message: JsonParseResult<ServerDelete> = serde_json::from_value(json);
                                 if let Ok(message) = message {
