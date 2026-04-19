@@ -12,6 +12,10 @@ serde_json = "1.0.67"
 
 [dependencies.ataraxia]
 path = "../ataraxia"
+features = ["voice"]
+
+[dependencies.ataraxia-voice]
+path = "../ataraxia-voice"
 
 [dependencies.tokio]
 version = "1"

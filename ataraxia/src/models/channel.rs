@@ -1,13 +1,9 @@
 use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
-
 use super::id::{ChannelId, ServerId, UserId};
 
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-
 #[non_exhaustive]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ChannelType {
     TextChannel,
     VoiceChannel,
@@ -17,7 +13,6 @@ pub enum ChannelType {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-
 pub struct Channel {
     pub channel_type: ChannelType,
     #[serde(rename = "_id")]
@@ -66,9 +61,8 @@ pub struct DMChannel {
     pub channel_type: ChannelType,
     #[serde(rename = "_id")]
     pub channel_id: ChannelId,
-    pub active: Option<Option<bool>>,
-    pub recipients: Option<Option<Vec<UserId>>>,
-    pub user: Option<Option<UserId>>
+    pub active: Option<bool>,
+    pub recipients: Option<Vec<UserId>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -94,6 +88,4 @@ pub struct PartialChannel {
     pub default_permissions: Option<ChannelDefaultPermissions>,
     pub last_message_id: Option<String>,
     pub nsfw: Option<bool>,
-    #[serde(flatten)]
-    pub role_permissions: Option<HashMap<String, ChannelDefaultPermissions>>,
 }

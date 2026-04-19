@@ -1,6 +1,5 @@
 use super::id::UserId;
 
-
 pub trait Mentionable {
     fn mention(&self) -> String;
 }

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
-use crate::models::{id::*, user::{User, PartialUser}};
-use super::GatewayEvent;
 use serde_json::Value;
+use crate::models::{id::UserId, user::{PartialUser, User}};
+use super::GatewayEvent;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserUpdate {
@@ -10,22 +10,22 @@ pub struct UserUpdate {
     #[serde(rename = "id")]
     pub user_id: UserId,
     pub data: PartialUser,
-    pub clear: Vec<Cleared>
+    pub clear: Vec<UserCleared>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum Cleared {
+pub enum UserCleared {
     ProfileContent,
     ProfileBackground,
     StatusText,
-    Avatar
+    Avatar,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UserRelationship {
     #[serde(rename = "type")]
     pub event_type: GatewayEvent,
-    #[serde(rename = "id")]
+    pub id: UserId,
     pub user: User,
     pub status: Value,
 }

@@ -1,13 +1,7 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use crate::models::id::*;
 use super::GatewayEvent;
-use serde_json::Value;
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ServerCreate {
-    #[serde(rename = "type")]
-    pub event_type: GatewayEvent,
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ServerUpdate {
@@ -16,15 +10,11 @@ pub struct ServerUpdate {
     #[serde(rename = "id")]
     pub server_id: ServerId,
     pub data: Value,
-    pub clear: Option<Vec<ServerClear>>
+    pub clear: Option<Vec<ServerClear>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum ServerClear {
-    Icon,
-    Banner,
-    Description,
-}
+pub enum ServerClear { Icon, Banner, Description }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ServerDelete {
@@ -39,22 +29,19 @@ pub struct ServerMemberUpdate {
     #[serde(rename = "type")]
     pub event_type: GatewayEvent,
     #[serde(rename = "id")]
-    pub server_id: ServerMemberUpdateIds,
+    pub ids: ServerMemberIds,
     pub data: Value,
-    clear: Option<Vec<ServerMemberCleared>>
+    pub clear: Option<Vec<ServerMemberCleared>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ServerMemberUpdateIds {
-    pub server_id: ServerId,
-    pub user_id: UserId,
+pub struct ServerMemberIds {
+    pub server: ServerId,
+    pub user: UserId,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum ServerMemberCleared {
-    Nickname,
-    Avatar
-}
+pub enum ServerMemberCleared { Nickname, Avatar }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ServerMemberJoin {
@@ -82,16 +69,13 @@ pub struct ServerRoleUpdate {
     pub event_type: GatewayEvent,
     #[serde(rename = "id")]
     pub server_id: ServerId,
-    #[serde(rename = "role_id")]
     pub role_id: RoleId,
     pub data: Value,
-    clear: Option<Vec<ServerRoleCleared>>
+    pub clear: Option<Vec<ServerRoleCleared>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub enum ServerRoleCleared {
-    Color,
-}
+pub enum ServerRoleCleared { Color }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ServerRoleDelete {
@@ -99,6 +83,5 @@ pub struct ServerRoleDelete {
     pub event_type: GatewayEvent,
     #[serde(rename = "id")]
     pub server_id: ServerId,
-    #[serde(rename = "role_id")]
     pub role_id: RoleId,
 }

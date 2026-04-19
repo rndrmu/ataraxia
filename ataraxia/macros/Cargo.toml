@@ -1,8 +1,8 @@
 [package]
 name = "ataraxia_macros"
-version = "0.1.0" # remember to update the version
+version = "0.1.0"
 edition = "2018"
-description = "Internal macro implementation crate of ataraxia"
+description = "Internal macro implementation crate for ataraxia"
 license = "MIT"
 repository = "https://github.com/rndrmu/ataraxia"
 

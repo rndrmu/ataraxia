@@ -42,7 +42,7 @@ async fn main() {
     let token = std::env::var("TOKEN").expect("token");
      let mut client = Client::new(token)
         .event_handler(Handler)
-        .set_api_url("https://api.revolt.chat");
+        .set_api_url("https://api.stoat.chat");
 
     client.start().await;
 
