@@ -103,29 +103,44 @@ impl VoiceConnection {
 
     /// Play audio from a YouTube (or any yt-dlp-supported) URL.
     ///
-    /// Requires `yt-dlp` and `ffmpeg` in `PATH`. Pipes yt-dlp → ffmpeg so playback
-    /// starts immediately — no waiting for the full download or moov-atom seek.
+    /// Requires `yt-dlp` and `ffmpeg` in `PATH`. Resolves the direct CDN URL via
+    /// yt-dlp --dump-json, then passes both the URL and the required HTTP headers to
+    /// ffmpeg so the CDN doesn't 403 (YouTube ties URLs to request headers).
     pub async fn play_youtube(&self, url: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        // Use std::process for yt-dlp so its ChildStdout can be passed directly as
-        // ffmpeg's stdin — tokio's ChildStdout doesn't implement Into<Stdio>.
-        let mut yt = std::process::Command::new("yt-dlp")
-            .args(["-f", "bestaudio/best", "--quiet", "--no-playlist", "-o", "-", url])
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null())
-            .spawn()?;
-        let yt_stdout = yt.stdout.take().ok_or("yt-dlp: no stdout")?;
+        let output = tokio::process::Command::new("yt-dlp")
+            .args([
+                "-f", "bestaudio[ext=webm]/bestaudio[acodec=opus]/bestaudio/best",
+                "--dump-json", "--no-playlist", "--quiet", url,
+            ])
+            .output()
+            .await?;
 
-        let mut ffmpeg = tokio::process::Command::new("ffmpeg")
-            .args(["-i", "pipe:0", "-f", "s16le", "-ac", "2", "-ar", "48000", "-acodec", "pcm_s16le", "pipe:1"])
-            .stdin(std::process::Stdio::from(yt_stdout))
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null())
-            .spawn()?;
+        let info: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+        let stream_url = info["url"].as_str().ok_or("yt-dlp: no url in dump-json output")?.to_string();
 
-        let stdout = ffmpeg.stdout.take().ok_or("ffmpeg: no stdout")?;
+        // Build the -headers string ffmpeg expects (CRLF-separated "Key: Value\r\n").
+        let mut headers = String::new();
+        if let Some(hdrs) = info["http_headers"].as_object() {
+            for (k, v) in hdrs {
+                if let Some(v) = v.as_str() {
+                    use std::fmt::Write as _;
+                    let _ = write!(headers, "{}: {}\r\n", k, v);
+                }
+            }
+        }
+
+        let mut cmd = tokio::process::Command::new("ffmpeg");
+        if !headers.is_empty() {
+            cmd.args(["-headers", &headers]);
+        }
+        cmd.args(["-i", &stream_url, "-f", "s16le", "-ac", "2", "-ar", "48000", "-acodec", "pcm_s16le", "-"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null());
+
+        let mut child = cmd.spawn()?;
+        let stdout = child.stdout.take().ok_or("ffmpeg: no stdout")?;
         self.stream_frames(stdout).await?;
-        ffmpeg.wait().await?;
-        let _ = tokio::task::spawn_blocking(move || yt.wait()).await;
+        child.wait().await?;
         Ok(())
     }
 

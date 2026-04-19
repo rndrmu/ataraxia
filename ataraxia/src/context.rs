@@ -85,21 +85,31 @@ impl Context {
         &self,
         channel: &str,
     ) -> Result<VoiceChannel, serde_json::Error> {
-        // Fetch the node name from the server config so the join_call body is valid.
         let node = self.get_livekit_node().await;
+        let text = self.do_join_call(channel, &node).await;
 
-        let res = reqwest::Client::new()
-            .post(
-                format!("{API_BASE_URL}/channels/{}/join_call", channel).as_str(),
-            )
-            .header("x-bot-token", self.token.clone())
-            .header("content-type", "application/json")
-            .body(json!({ "force_disconnect": false, "node": node }).to_string())
-            .send()
-            .await
-            .unwrap();
+        // If we're already connected, leave first then retry once.
+        if let Some(t) = text.as_ref().ok().and_then(|t| {
+            serde_json::from_str::<serde_json::Value>(t).ok()
+                .and_then(|v| if v["type"] == "AlreadyConnected" { Some(()) } else { None })
+        }) {
+            let _ = t;
+            let _ = reqwest::Client::new()
+                .delete(format!("{API_BASE_URL}/channels/{}/call", channel).as_str())
+                .header("x-bot-token", self.token.clone())
+                .send()
+                .await;
+            let text2 = self.do_join_call(channel, &node).await.unwrap_or_default();
+            return match serde_json::from_str::<VoiceChannel>(&text2) {
+                Ok(vc) => Ok(vc),
+                Err(e) => {
+                    error!("Failed to parse join_call response after leave (raw: {}): {:?}", text2, e);
+                    Err(e)
+                }
+            };
+        }
 
-        let text = res.text().await.unwrap();
+        let text = text.unwrap_or_default();
         match serde_json::from_str::<VoiceChannel>(&text) {
             Ok(vc) => Ok(vc),
             Err(e) => {
@@ -107,6 +117,20 @@ impl Context {
                 Err(e)
             }
         }
+    }
+
+    async fn do_join_call(&self, channel: &str, node: &str) -> Result<String, ()> {
+        reqwest::Client::new()
+            .post(format!("{API_BASE_URL}/channels/{}/join_call", channel).as_str())
+            .header("x-bot-token", self.token.clone())
+            .header("content-type", "application/json")
+            .body(json!({ "force_disconnect": false, "node": node }).to_string())
+            .send()
+            .await
+            .map_err(|_| ())?
+            .text()
+            .await
+            .map_err(|_| ())
     }
 
     async fn get_livekit_node(&self) -> String {

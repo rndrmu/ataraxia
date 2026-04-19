@@ -125,6 +125,7 @@ dependencies = [
  "cc",
  "livekit",
  "opus",
+ "serde_json",
  "tokio",
 ]
 
