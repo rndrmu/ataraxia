@@ -10,6 +10,8 @@ pub struct ServerConfig {
     #[serde(rename = "app")]
     pub app_url: String,
     pub vapid: String,
+    #[serde(default)]
+    pub build: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -19,7 +21,10 @@ pub struct Features {
     pub invite_only: bool,
     pub autumn: AutumnConfig,
     pub january: JanuaryConfig,
-    pub voso: VortexConfig,
+    #[serde(default)]
+    pub livekit: Option<LiveKitConfig>,
+    #[serde(default)]
+    pub limits: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,9 +46,15 @@ pub struct JanuaryConfig {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct VortexConfig {
+pub struct LiveKitConfig {
     pub enabled: bool,
-    pub url: String,
-    #[serde(rename = "ws")]
-    pub ws_url: String,
+    pub nodes: Vec<LiveKitNode>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct LiveKitNode {
+    pub name: String,
+    pub lat: f64,
+    pub lon: f64,
+    pub public_url: String,
 }

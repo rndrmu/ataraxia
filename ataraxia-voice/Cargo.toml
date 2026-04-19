@@ -3,41 +3,15 @@ name = "ataraxia-voice"
 authors = ["rndrmu"]
 version = "0.1.0"
 edition = "2021"
-description = "Voice support for the Ataraxia Revolt library (Vortex/SRTP)"
+description = "Voice support for the Ataraxia Revolt library (LiveKit/WebRTC)"
 license = "BSD-3-Clause"
 
+[build-dependencies]
+cc = "1"
+
 [dependencies]
-futures-util = { version = "0.3", features = ["sink", "std"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-rand = "0.8"
-base64 = "0.21"
-byteorder = "1"
-uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", features = ["full"] }
+livekit = { git = "https://github.com/livekit/rust-sdks", branch = "main", features = ["rustls-tls-native-roots"] }
 
-[dependencies.tokio]
-version = "1"
-features = ["full"]
-
-[dependencies.tokio-tungstenite]
-version = "0.17"
-features = ["native-tls"]
-
-[dependencies.opus]
-version = "0.3"
-
-# RustCrypto — SRTP AES_CM_128_HMAC_SHA1_80
-[dependencies.aes]
-version = "0.8"
-
-[dependencies.ctr]
-version = "0.9"
-
-[dependencies.cipher]
-version = "0.4"
-
-[dependencies.hmac]
-version = "0.12"
-
-[dependencies.sha1]
-version = "0.10"
+# Audio transcoding pipeline
+opus = "0.3"

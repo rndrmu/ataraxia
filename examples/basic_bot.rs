@@ -1,11 +1,25 @@
+use std::sync::Arc;
+use tokio::sync::Mutex;
+
 use ataraxia::{
     async_trait,
     context::Context,
     models::{message::Message as RevoltMessage, ready::Ready},
     websocket::{Client, EventHandler},
 };
+use ataraxia_voice::VoiceConnection;
 
-struct Handler;
+struct Handler {
+    voice: Arc<Mutex<Option<VoiceConnection>>>,
+}
+
+impl Handler {
+    fn new() -> Self {
+        Self {
+            voice: Arc::new(Mutex::new(None)),
+        }
+    }
+}
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -20,33 +34,19 @@ impl EventHandler for Handler {
     }
 
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
-        println!("{}", message);
+        let content = message.content.as_str();
 
-        if message.content == "!ping" {
-            // Send a reply with an embed and a masquerade
-            let msg = message
+        if content == "!ping" {
+            let _ = message
                 .channel_id
                 .send_message(&ctx.http, |r| {
-                    r.content("pong!")
-                        .set_masquerade(|m| m.name("Pong Bot"))
-                        .create_embed(|e| {
-                            e.title("Pong!")
-                                .description("I'm alive!")
-                                .colour("#00ff00")
-                        })
+                    r.content("pong!").create_embed(|e| {
+                        e.title("Pong!").description("I'm alive!").colour("#00ff00")
+                    })
                 })
                 .await;
-
-            println!("Sent: {:?}", msg);
-
-        } else if message.content.starts_with("!join") {
-            // Join a voice channel and connect with ataraxia-voice
-            let parts: Vec<&str> = message.content.split_whitespace().collect();
-            if parts.len() < 2 {
-                ctx.reply("Usage: !join <channel_id>").await;
-                return;
-            }
-            let channel_id = parts[1];
+        } else if let Some(channel_id) = content.strip_prefix("!join ") {
+            let channel_id = channel_id.trim();
 
             let vc = match ctx.join_voice_channel(channel_id).await {
                 Ok(vc) => vc,
@@ -58,24 +58,51 @@ impl EventHandler for Handler {
 
             ctx.reply("Joining voice channel...").await;
 
-            let mut conn = match ataraxia_voice::VoiceConnection::connect(&vc.token, channel_id).await {
-                Ok(c) => c,
+            match VoiceConnection::connect(&vc.url, &vc.token).await {
+                Ok(conn) => {
+                    *self.voice.lock().await = Some(conn);
+                    ctx.reply("Connected! Use `!play <url>` to play audio.")
+                        .await;
+                }
                 Err(e) => {
                     ctx.reply(&format!("Voice connection failed: {}", e)).await;
-                    return;
                 }
-            };
-
-            ctx.reply("Connected! Playing audio...").await;
-
-            // Play a file — change this path to your audio file
-            if let Err(e) = conn.play_file("/tmp/audio.mp3").await {
-                ctx.reply(&format!("Playback error: {}", e)).await;
             }
+        } else if let Some(url) = content.strip_prefix("!play ") {
+            let url = url.trim().to_string();
+            let voice = self.voice.clone();
 
-        } else if message.content == "!me" {
-            let user = message.author.get_author_user(&ctx.http).await.unwrap();
-            ctx.reply(&format!("{:?}", user)).await;
+            let guard = voice.lock().await;
+            match guard.as_ref() {
+                None => {
+                    ctx.reply("Not in a voice channel — use `!join <channel_id>` first.")
+                        .await;
+                }
+                Some(conn) => {
+                    ctx.reply(&format!("Playing `{}`...", url)).await;
+                    if let Err(e) = conn.play_youtube(&url).await {
+                        ctx.reply(&format!("Playback error: {}", e)).await;
+                    } else {
+                        ctx.reply("Done!").await;
+                    }
+                }
+            }
+        } else if content == "!leave" {
+            let mut guard = self.voice.lock().await;
+            match guard.take() {
+                None => {
+                    ctx.reply("Not in a voice channel.").await;
+                }
+                Some(conn) => {
+                    let _ = conn.disconnect().await;
+                    ctx.reply("Left the voice channel.").await;
+                }
+            }
+        } else if content == "!me" {
+            match message.author.get_author_user(&ctx.http).await {
+                Ok(user) => ctx.reply(&format!("{:?}", user)).await,
+                Err(e) => ctx.reply(&format!("Error: {}", e)).await,
+            }
         }
     }
 }
@@ -83,13 +110,14 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
+    std::env::set_var("RUST_LOG", "info,ataraxia=info");
     tracing_subscriber::fmt::init();
 
     let token = std::env::var("REVOLT_TOKEN").expect("REVOLT_TOKEN not set");
 
     let mut client = Client::new(token)
-        .event_handler(Handler)
-        .set_api_url("https://api.revolt.chat")
+        .event_handler(Handler::new())
+        .set_api_url("https://stoat.chat/api")
         .await;
 
     client.start().await;

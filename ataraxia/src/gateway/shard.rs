@@ -5,9 +5,8 @@ use futures_util::{SinkExt, StreamExt};
 use serde_json::json;
 use tokio::sync::mpsc::UnboundedReceiver;
 
-use async_tungstenite::tungstenite::Message;
-use async_tungstenite::tokio::ConnectStream;
-use async_tungstenite::WebSocketStream;
+use tokio_tungstenite::tungstenite::Message;
+use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, Connector};
 
 use crate::{
     client::EventHandler,
@@ -32,7 +31,7 @@ use crate::{
     },
 };
 
-pub type WsStream = WebSocketStream<ConnectStream>;
+pub type WsStream = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 type JsonResult<T> = std::result::Result<T, serde_json::Error>;
 
@@ -42,34 +41,71 @@ pub struct Shard {
 }
 
 pub(crate) async fn create_client(url: String) -> Result<WsStream> {
-    let config = async_tungstenite::tungstenite::protocol::WebSocketConfig {
-        max_message_size: None,
-        max_frame_size: None,
-        max_send_queue: None,
-        accept_unmasked_frames: false,
-    };
-    let (stream, _) =
-        async_tungstenite::tokio::connect_async_with_config(url, Some(config)).await?;
+    let parsed = url::Url::parse(&url)?;
+    let host = parsed.host_str().ok_or("no host in gateway URL")?.to_string();
+    let port = parsed.port_or_known_default().ok_or("no default port for scheme")?;
+
+    // Prefer IPv4: async-tungstenite tries addresses sequentially, so unreachable IPv6
+    // addresses cause a ~75s TCP timeout each before falling through to IPv4.
+    let addrs: Vec<_> = tokio::net::lookup_host(format!("{}:{}", host, port))
+        .await?
+        .collect();
+    let addr = addrs.iter()
+        .find(|a| a.is_ipv4())
+        .or_else(|| addrs.first())
+        .copied()
+        .ok_or("DNS resolution returned no addresses")?;
+
+    let tcp = tokio::net::TcpStream::connect(addr).await?;
+
+    let native_cx = tokio_native_tls::native_tls::TlsConnector::new()?;
+    let connector = Connector::NativeTls(native_cx);
+
+    let (stream, _) = tokio_tungstenite::client_async_tls_with_config(
+        url.as_str(),
+        tcp,
+        None,
+        Some(connector),
+    ).await?;
     Ok(stream)
 }
 
 impl Shard {
     pub async fn new(socket_url: String, handler: Arc<dyn EventHandler>) -> Self {
-        let ws = create_client(socket_url).await.unwrap();
+        info!("[GATEWAY] Connecting to {}", socket_url);
+        let ws = match create_client(socket_url).await {
+            Ok(ws) => { info!("[GATEWAY] WebSocket connected"); ws }
+            Err(e) => panic!("[GATEWAY] Failed to connect: {:?}", e),
+        };
         Self { event_handler: handler, ws }
     }
 
     pub async fn connect(mut self, token: String) {
         self.authenticate(token.clone()).await;
+        info!("[GATEWAY] Auth message sent, waiting for response...");
 
         let (sender, receiver) = tokio::sync::mpsc::unbounded_channel();
         let (mut write, mut read) = self.ws.split();
 
         // Reader task: forwards WS messages into the mpsc channel
         tokio::spawn(async move {
-            while let Some(Ok(message)) = read.next().await {
-                if let Err(e) = sender.send(message) {
-                    error!("Error forwarding message: {:?}", e);
+            loop {
+                match read.next().await {
+                    Some(Ok(message)) => {
+                        debug!("[GATEWAY] Raw frame: {:?}", message);
+                        if let Err(e) = sender.send(message) {
+                            error!("[GATEWAY] Channel send error: {:?}", e);
+                            break;
+                        }
+                    }
+                    Some(Err(e)) => {
+                        error!("[GATEWAY] WS read error: {:?}", e);
+                        break;
+                    }
+                    None => {
+                        error!("[GATEWAY] WS stream closed by server");
+                        break;
+                    }
                 }
             }
         });

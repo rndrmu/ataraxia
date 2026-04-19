@@ -94,7 +94,7 @@ impl Client {
         let socket_url = self
             .socket_url
             .clone()
-            .unwrap_or_else(|| "wss://ws.revolt.chat".to_owned());
+            .unwrap_or_else(|| "wss://stoat.chat/events".to_owned());
 
         let shard = Shard::new(socket_url, handler.clone()).await;
         shard.connect(self.token.clone()).await;

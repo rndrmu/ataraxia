@@ -25,3 +25,7 @@ features = ["fs", "macros", "rt-multi-thread", "io-util"]
 [[example]]
 name = "devbot"
 path = "./basic_bot.rs"
+
+[[example]]
+name = "command_framework"
+path = "./command_framework.rs"

@@ -2,7 +2,7 @@ use serde_json::{json, Error};
 use tracing::error;
 
 use crate::{
-    http::Http,
+    http::{Http, API_BASE_URL},
     models::{
         channel::Channel,
         message::{to_value, CreateMessage, Message},
@@ -19,6 +19,7 @@ pub struct Context {
 #[derive(serde::Deserialize)]
 pub struct VoiceChannel {
     pub token: String,
+    pub url: String,
 }
 
 impl Context {
@@ -37,7 +38,7 @@ impl Context {
             reqwest::Client::new()
                 .post(
                     format!(
-                        "https://api.revolt.chat/channels/{}/messages",
+                        "{API_BASE_URL}/channels/{}/messages",
                         json.channel_id.0
                     )
                     .as_str(),
@@ -67,7 +68,7 @@ impl Context {
 
         reqwest::Client::new()
             .post(
-                format!("https://api.revolt.chat/channels/{}/messages", channel_id).as_str(),
+                format!("{API_BASE_URL}/channels/{}/messages", channel_id).as_str(),
             )
             .header("x-bot-token", self.token.clone())
             .header("content-type", "application/json")
@@ -84,12 +85,16 @@ impl Context {
         &self,
         channel: &str,
     ) -> Result<VoiceChannel, serde_json::Error> {
+        // Fetch the node name from the server config so the join_call body is valid.
+        let node = self.get_livekit_node().await;
+
         let res = reqwest::Client::new()
             .post(
-                format!("https://api.revolt.chat/channels/{}/join_call", channel).as_str(),
+                format!("{API_BASE_URL}/channels/{}/join_call", channel).as_str(),
             )
             .header("x-bot-token", self.token.clone())
             .header("content-type", "application/json")
+            .body(json!({ "force_disconnect": false, "node": node }).to_string())
             .send()
             .await
             .unwrap();
@@ -98,10 +103,28 @@ impl Context {
         match serde_json::from_str::<VoiceChannel>(&text) {
             Ok(vc) => Ok(vc),
             Err(e) => {
-                error!("Failed to parse join_call response: {:?}", e);
+                error!("Failed to parse join_call response (raw: {}): {:?}", text, e);
                 Err(e)
             }
         }
+    }
+
+    async fn get_livekit_node(&self) -> String {
+        use crate::models::server::ServerConfig;
+        let res = reqwest::Client::new()
+            .get(API_BASE_URL)
+            .send()
+            .await;
+        if let Ok(r) = res {
+            if let Ok(cfg) = r.json::<ServerConfig>().await {
+                if let Some(lk) = cfg.features.livekit {
+                    if let Some(node) = lk.nodes.into_iter().next() {
+                        return node.name;
+                    }
+                }
+            }
+        }
+        "worldwide".to_string()
     }
 
     /// Kick a member from a server.
@@ -109,7 +132,7 @@ impl Context {
         reqwest::Client::new()
             .delete(
                 format!(
-                    "https://api.revolt.chat/servers/{}/members/{}",
+                    "{API_BASE_URL}/servers/{}/members/{}",
                     server_id, member_id
                 )
                 .as_str(),
@@ -130,7 +153,7 @@ impl Context {
         reqwest::Client::new()
             .put(
                 format!(
-                    "https://api.revolt.chat/servers/{}/bans/{}",
+                    "{API_BASE_URL}/servers/{}/bans/{}",
                     server_id, member_id
                 )
                 .as_str(),
@@ -146,7 +169,7 @@ impl Context {
     /// Fetch a channel by ID.
     pub async fn get_channel(&self, channel_id: &str) -> Result<Channel, serde_json::Error> {
         let res = reqwest::Client::new()
-            .get(format!("https://api.revolt.chat/channels/{}", channel_id).as_str())
+            .get(format!("{API_BASE_URL}/channels/{}", channel_id).as_str())
             .header("x-bot-token", &self.token)
             .send()
             .await

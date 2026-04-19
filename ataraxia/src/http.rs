@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use crate::models::{id::UserId, server::ServerConfig, user::User};
 
-pub static API_BASE_URL: &str = "https://api.revolt.chat";
+pub static API_BASE_URL: &str = "https://stoat.chat/api";
 
 #[derive(Clone)]
 pub struct Http {

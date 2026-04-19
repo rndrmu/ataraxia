@@ -1,39 +1,44 @@
+use darling::FromMeta;
+use proc_macro::TokenStream;
+use quote::quote;
+use syn::{parse_macro_input, AttributeArgs, ItemFn};
 
-#[derive(Default, Debug, darling::FromMeta)]
+#[derive(Debug, Default, FromMeta)]
 #[darling(default)]
 pub struct CommandArgs {
-    name: String,
-    description: String,
-    aliases: crate::util::List<String>
+    name: Option<String>,
+    description: Option<String>,
+    aliases: crate::util::AliasList,
 }
 
-pub struct Command {
-    name: String,
-    description: String,
-    aliases: Vec<String>,
-    function: syn::ItemFn,
-}
+pub fn command(args: TokenStream, input: TokenStream) -> TokenStream {
+    let attr_args = parse_macro_input!(args as AttributeArgs);
+    let func = parse_macro_input!(input as ItemFn);
 
-/* 
-pub fn cmd(
-    args: CommandArgs,
-    function: syn::ItemFn,
-) -> Result<proc_macro::TokenStream, darling::Error> {
-    let name = args.name;
-    let description = args.description;
-    let aliases = args.aliases.0;
+    let cmd_args = match CommandArgs::from_list(&attr_args) {
+        Ok(v) => v,
+        Err(e) => return e.write_errors().into(),
+    };
 
-    // construct the command struct
-    let function_name = function.sig.ident;
+    let func_name = &func.sig.ident;
+    let func_name_str = func_name.to_string();
 
-    Ok(quote::quote!(
-        ataraxia::macros::Command {
-            name: #name,
+    let cmd_name = cmd_args.name.unwrap_or_else(|| func_name_str.clone());
+    let description = cmd_args.description.unwrap_or_default();
+    let aliases = cmd_args.aliases.0;
+
+    let static_ident =
+        quote::format_ident!("{}_COMMAND", func_name_str.to_uppercase());
+
+    quote! {
+        #func
+
+        pub static #static_ident: ::ataraxia::command::Command = ::ataraxia::command::Command {
+            name: #cmd_name,
             description: #description,
-            aliases: vec![#(#aliases),*],
-            function: #function_name as fn(&ataraxia::context::Context, ataraxia::models::Message) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send + 'static>>
-        }
-    ).into())
+            aliases: &[#(#aliases),*],
+            execute: |ctx, msg| ::std::boxed::Box::pin(#func_name(ctx, msg)),
+        };
+    }
+    .into()
 }
-
- */

@@ -30,6 +30,8 @@ type WsRx = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 /// 20 ms Opus frame at 48 kHz stereo
 const SAMPLES_PER_FRAME: usize = 960;
 const OPUS_PAYLOAD_TYPE: u8 = 120;
+// TODO: vortex.revolt.chat is superseded by stoat.chat Voice Chats v2.
+// This URL needs updating once the Voice Chats v2 endpoint is documented.
 const VORTEX_WS: &str = "wss://vortex.revolt.chat";
 
 pub struct VoiceConnection {
@@ -54,24 +56,25 @@ impl VoiceConnection {
         voice_token: &str,
         channel_id: &str,
     ) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        // Generate all random material before the first .await — ThreadRng is !Send
+        // and cannot be held across await points.
+        let (ssrc, master_key, master_salt, key_base64, cname) = {
+            let mut rng = rand::thread_rng();
+            let ssrc: u32 = rng.gen();
+            let mut master_key = [0u8; 16];
+            let mut master_salt = [0u8; 14];
+            rng.fill(&mut master_key);
+            rng.fill(&mut master_salt);
+            let mut key_material = [0u8; 30];
+            key_material[..16].copy_from_slice(&master_key);
+            key_material[16..].copy_from_slice(&master_salt);
+            let key_base64 = base64::engine::general_purpose::STANDARD.encode(key_material);
+            let cname = uuid::Uuid::new_v4().to_string();
+            (ssrc, master_key, master_salt, key_base64, cname)
+        };
+
         let (ws_stream, _) = connect_async(VORTEX_WS).await?;
         let (mut ws_tx, mut ws_rx) = ws_stream.split();
-
-        let mut rng = rand::thread_rng();
-        let ssrc: u32 = rng.gen();
-
-        // Generate random SRTP master key (16 B) + salt (14 B)
-        let mut master_key = [0u8; 16];
-        let mut master_salt = [0u8; 14];
-        rng.fill(&mut master_key);
-        rng.fill(&mut master_salt);
-
-        let mut key_material = [0u8; 30];
-        key_material[..16].copy_from_slice(&master_key);
-        key_material[16..].copy_from_slice(&master_salt);
-        let key_base64 = base64::engine::general_purpose::STANDARD.encode(key_material);
-
-        let cname = uuid::Uuid::new_v4().to_string();
 
         // ── Step 1: Authenticate ──────────────────────────────────────────────
         ws_tx
@@ -242,6 +245,16 @@ impl VoiceConnection {
         Ok(())
     }
 
+    /// Play audio from a YouTube (or any yt-dlp-supported) URL over the voice channel.
+    ///
+    /// Requires both `yt-dlp` and `ffmpeg` in `PATH`.
+    /// Uses `yt-dlp -g` to resolve the best audio stream URL, then hands it to
+    /// ffmpeg — no local file is written.
+    pub async fn play_youtube(&mut self, url: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let stream_url = resolve_yt_dlp_url(url).await?;
+        self.play_file(&stream_url).await
+    }
+
     /// Send a "not speaking" signal to the Vortex server.
     pub async fn set_not_speaking(&mut self) -> Result<(), Box<dyn Error + Send + Sync>> {
         self.ws_tx
@@ -298,6 +311,29 @@ async fn wait_for_start_produce(
         }
     }
     Err("Vortex connection closed before StartProduce".into())
+}
+
+/// Resolve the best audio stream URL for a YouTube (or other yt-dlp-supported) URL.
+///
+/// Runs `yt-dlp -f bestaudio/best -g <url>` and returns the first line of output.
+async fn resolve_yt_dlp_url(url: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    let output = tokio::process::Command::new("yt-dlp")
+        .args(["-f", "bestaudio/best", "-g", url])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("yt-dlp failed: {}", stderr).into());
+    }
+
+    let stream_url = String::from_utf8(output.stdout)?
+        .lines()
+        .next()
+        .ok_or("yt-dlp returned no URL")?
+        .to_string();
+
+    Ok(stream_url)
 }
 
 /// Transcode any audio file to raw signed 16-bit LE PCM at 48 kHz stereo using ffmpeg.
