@@ -1,68 +1,96 @@
-
-
-
-use tokio;
-
-
-use ataraxia::websocket::Client;
-use ataraxia::websocket::EventHandler;
-use ataraxia::{models::message::Message as RevoltMessage, http::Http};
-use ataraxia::context::Context;
-
+use ataraxia::{
+    async_trait,
+    context::Context,
+    models::{message::Message as RevoltMessage, ready::Ready},
+    websocket::{Client, EventHandler},
+};
 
 struct Handler;
 
-#[async_trait::async_trait]
+#[async_trait]
 impl EventHandler for Handler {
-    /// Function called when the client is authenticated
     async fn authenticated(&self) {
         println!("Authenticated!");
     }
-    /// Function called when the client is ready
-    async fn ready(&self, ctx: Context) {
+
+    async fn ready(&self, _ctx: Context, ready: Ready) {
         println!("Ready!");
-        println!(":trol:");
+        let names: Vec<_> = ready.users.iter().map(|u| &u.username).collect();
+        println!("Logged in, saw users: {:?}", names);
     }
-    /// Function called when a message is received, you can reply to the message with the `ctx.reply` function
-    /// 
-    /// # Arguments
-    /// To use arguments you need to somehow split the message into a command and the arguments
-    /// See the `!join` command for an example
+
     async fn on_message(&self, ctx: Context, message: RevoltMessage) {
         println!("{}", message);
+
         if message.content == "!ping" {
-            println!("Pong!");
-            ctx.reply("pong").await;
+            // Send a reply with an embed and a masquerade
+            let msg = message
+                .channel_id
+                .send_message(&ctx.http, |r| {
+                    r.content("pong!")
+                        .set_masquerade(|m| m.name("Pong Bot"))
+                        .create_embed(|e| {
+                            e.title("Pong!")
+                                .description("I'm alive!")
+                                .colour("#00ff00")
+                        })
+                })
+                .await;
+
+            println!("Sent: {:?}", msg);
+
         } else if message.content.starts_with("!join") {
-            let voice_channel_id = message.content.split(" ").collect::<Vec<&str>>()[1];
-            println!("Joining voice channel {}", voice_channel_id);
-            let vc = ctx.join_voice_channel(voice_channel_id).await.unwrap();
+            // Join a voice channel and connect with ataraxia-voice
+            let parts: Vec<&str> = message.content.split_whitespace().collect();
+            if parts.len() < 2 {
+                ctx.reply("Usage: !join <channel_id>").await;
+                return;
+            }
+            let channel_id = parts[1];
+
+            let vc = match ctx.join_voice_channel(channel_id).await {
+                Ok(vc) => vc,
+                Err(e) => {
+                    ctx.reply(&format!("Failed to join voice: {}", e)).await;
+                    return;
+                }
+            };
+
+            ctx.reply("Joining voice channel...").await;
+
+            let mut conn = match ataraxia_voice::VoiceConnection::connect(&vc.token, channel_id).await {
+                Ok(c) => c,
+                Err(e) => {
+                    ctx.reply(&format!("Voice connection failed: {}", e)).await;
+                    return;
+                }
+            };
+
+            ctx.reply("Connected! Playing audio...").await;
+
+            // Play a file — change this path to your audio file
+            if let Err(e) = conn.play_file("/tmp/audio.mp3").await {
+                ctx.reply(&format!("Playback error: {}", e)).await;
+            }
+
+        } else if message.content == "!me" {
+            let user = message.author.get_author_user(&ctx.http).await.unwrap();
+            ctx.reply(&format!("{:?}", user)).await;
         }
     }
 }
 
-
-
-
 #[tokio::main]
 async fn main() {
-
     dotenv::dotenv().ok();
+    tracing_subscriber::fmt::init();
 
+    let token = std::env::var("REVOLT_TOKEN").expect("REVOLT_TOKEN not set");
 
+    let mut client = Client::new(token)
+        .event_handler(Handler)
+        .set_api_url("https://api.revolt.chat")
+        .await;
 
-    let token = std::env::var("REVOLT_TOKEN").expect("token");
-
-
-    // Build the client and start it
-    // Handler is the Handler Struct
-    // which implements the EventHandler trait
-    // and acts as "Event Loop" for the client
-    Client::new(token).await.run(Handler).await;
-
-
-
-
+    client.start().await;
 }
-
-
