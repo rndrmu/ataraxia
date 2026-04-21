@@ -1,0 +1,17 @@
+[server]
+host = "0.0.0.0"
+port = 2333
+password = "youshallnotpass"
+
+[revolt]
+api_url = "https://stoat.chat/api"
+token = "lmao"
+
+[audio]
+ffmpeg_path = "ffmpeg"
+ytdlp_path = "yt-dlp"
+default_volume = 100
+
+[session]
+resume_timeout_secs = 60
+player_update_interval_secs = 5

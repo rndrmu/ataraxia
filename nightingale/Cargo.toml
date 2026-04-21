@@ -1,0 +1,25 @@
+[package]
+name = "nightingale"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "nightingale"
+path = "src/main.rs"
+
+[dependencies]
+ataraxia = { path = "../ataraxia" }
+ataraxia-voice = { path = "../ataraxia-voice" }
+reqwest = { version = "0.11", features = ["json"] }
+
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+uuid = { version = "1", features = ["v4"] }
+futures-util = "0.3"
+dashmap = "5"
+toml = "0.8"

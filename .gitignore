@@ -1,2 +1,7 @@
 /target
 .env
+test.raw
+Cargo.lock
+./ataraxia/Cargo.lock
+./ataraxia-voice/Cargo.lock
+./ataraxia-macros/Cargo.lock

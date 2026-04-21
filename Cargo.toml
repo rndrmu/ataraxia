@@ -1,6 +1,12 @@
 [workspace]
+resolver = "2"
 members = [
     "ataraxia",
+    "ataraxia/macros",
     "ataraxia-voice",
+    "nightingale",
     "examples"
 ]
+
+keywords = ["revolt", "api"]
+publish = true
