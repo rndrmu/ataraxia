@@ -129,6 +129,48 @@ ataraxia-voice = { path = "../ataraxia-voice" }
 
 ---
 
+## Nightingale — standalone audio node
+
+Nightingale is a self-hosted audio node (similar to [Lavalink](https://github.com/lavalink-devs/Lavalink)) that handles voice connections and audio playback independently from your bot process.
+
+Your bot resolves the LiveKit credentials via `ctx.join_voice_channel()` and hands them to Nightingale over WebSocket. Nightingale manages the ffmpeg pipeline and streams audio directly into the voice channel.
+
+### Running
+
+```toml
+# nightingale/nightingale.toml
+[server]
+host = "0.0.0.0"
+port = 2333
+password = "youshallnotpass"
+
+[audio]
+ffmpeg_path = "ffmpeg"
+ytdlp_path = "yt-dlp"
+default_volume = 100
+```
+
+```sh
+cargo run -p nightingale
+```
+
+Requires `ffmpeg` and `yt-dlp` in `PATH`.
+
+### Bot-side usage
+
+Send a `voiceConnect` op after joining the channel, then use the REST API or WebSocket ops to control playback:
+
+```
+POST   /v1/sessions/:id/players/:guild_id   { "track": "..." }
+PATCH  /v1/sessions/:id/players/:guild_id   { "paused": true }
+DELETE /v1/sessions/:id/players/:guild_id
+GET    /v1/loadtracks?identifier=ytsearch:...
+```
+
+See `examples/music_bot.rs` for a full bot implementation with queue, shuffle, and repeat.
+
+---
+
 ## Workspace layout
 
 | Crate | Description |
@@ -136,4 +178,5 @@ ataraxia-voice = { path = "../ataraxia-voice" }
 | `ataraxia` | Core library — gateway, HTTP, models, command framework |
 | `ataraxia/macros` | Proc-macro crate (`#[command]`) |
 | `ataraxia-voice` | LiveKit voice support |
+| `nightingale` | Standalone audio node (Lavalink-style) |
 | `examples` | Example bots |
