@@ -14,10 +14,9 @@ use livekit::{
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
 
-const SAMPLE_RATE: u32 = 48000;
-const NUM_CHANNELS: u32 = 2;
-/// 20 ms frame at 48 kHz stereo
-const SAMPLES_PER_CHANNEL: u32 = 960;
+pub const SAMPLE_RATE: u32 = 48000;
+pub const NUM_CHANNELS: u32 = 2;
+pub const SAMPLES_PER_CHANNEL: u32 = 960;
 
 pub struct VoiceConnection {
     room: Arc<Room>,
@@ -133,7 +132,9 @@ impl VoiceConnection {
         if !headers.is_empty() {
             cmd.args(["-headers", &headers]);
         }
-        cmd.args(["-i", &stream_url, "-f", "s16le", "-ac", "2", "-ar", "48000", "-acodec", "pcm_s16le", "-"])
+        // Reconnect on transient HTTP failures so a momentary CDN hiccup doesn't kill playback.
+        cmd.args(["-reconnect", "1", "-reconnect_streamed", "1", "-reconnect_delay_max", "5"]);
+        cmd.args(["-i", &stream_url, "-vn", "-f", "s16le", "-ac", "2", "-ar", "48000", "-acodec", "pcm_s16le", "-"])
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null());
 
@@ -141,6 +142,16 @@ impl VoiceConnection {
         let stdout = child.stdout.take().ok_or("ffmpeg: no stdout")?;
         self.stream_frames(stdout).await?;
         child.wait().await?;
+        Ok(())
+    }
+
+    /// Send a single pre-decoded PCM frame directly to the LiveKit source.
+    ///
+    /// Used by external audio nodes (e.g. Nightingale) that manage their own
+    /// ffmpeg pipeline and just need a way to push frames without going through
+    /// `play_file` / `play_youtube`.
+    pub async fn capture_frame(&self, frame: AudioFrame<'_>) -> Result<(), Box<dyn Error + Send + Sync>> {
+        self.source.capture_frame(&frame).await?;
         Ok(())
     }
 
@@ -155,28 +166,48 @@ impl VoiceConnection {
         mut stdout: tokio::process::ChildStdout,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use tokio::io::AsyncReadExt;
+        use tokio::sync::mpsc::error::TryRecvError;
 
         const FRAME_BYTES: usize = SAMPLES_PER_CHANNEL as usize * NUM_CHANNELS as usize * 2;
-        let frame_interval = Duration::from_millis(
-            SAMPLES_PER_CHANNEL as u64 * 1000 / SAMPLE_RATE as u64,
-        );
-        let mut ticker = tokio::time::interval(frame_interval);
-        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        // ~1 second of pre-buffer so transient read stalls don't cause audible gaps.
+        const BUFFER_FRAMES: usize = 50;
 
-        let mut buf = vec![0u8; FRAME_BYTES];
-        loop {
-            match stdout.read_exact(&mut buf).await {
-                Ok(_) => {}
-                Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
-                Err(e) => return Err(e.into()),
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<i16>>(BUFFER_FRAMES);
+
+        // Producer: decode ffmpeg output as fast as possible into the channel.
+        tokio::spawn(async move {
+            let mut buf = vec![0u8; FRAME_BYTES];
+            loop {
+                match stdout.read_exact(&mut buf).await {
+                    Ok(_) => {}
+                    Err(_) => break,
+                }
+                let samples: Vec<i16> = buf
+                    .chunks_exact(2)
+                    .map(|b| i16::from_le_bytes([b[0], b[1]]))
+                    .collect();
+                if tx.send(samples).await.is_err() {
+                    break;
+                }
             }
+        });
 
-            let samples: Vec<i16> = buf
-                .chunks_exact(2)
-                .map(|b| i16::from_le_bytes([b[0], b[1]]))
-                .collect();
+        // Consumer: pace at exactly 20ms regardless of how long reads take.
+        // MissedTickBehavior::Delay shifts the schedule forward rather than
+        // firing catch-up bursts, which keeps frame spacing even under load.
+        let silence = vec![0i16; SAMPLES_PER_CHANNEL as usize * NUM_CHANNELS as usize];
+        let mut ticker = tokio::time::interval(Duration::from_millis(20));
+        ticker.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
 
+        loop {
             ticker.tick().await;
+            let samples = match rx.try_recv() {
+                Ok(s) => s,
+                // Buffer underrun: send silence rather than stalling the ticker.
+                Err(TryRecvError::Empty) => silence.clone(),
+                // Producer exited and buffer is drained — we're done.
+                Err(TryRecvError::Disconnected) => break,
+            };
             self.source.capture_frame(&AudioFrame {
                 data: samples.into(),
                 sample_rate: SAMPLE_RATE,

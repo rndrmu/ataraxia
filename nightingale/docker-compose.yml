@@ -1,0 +1,10 @@
+services:
+  nightingale:
+    build:
+      context: ..          # workspace root so path deps resolve
+      dockerfile: nightingale/Dockerfile
+    ports:
+      - "2333:2333"
+    volumes:
+      - ./nightingale.toml:/nightingale.toml:ro
+    restart: unless-stopped

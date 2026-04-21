@@ -4,6 +4,7 @@ members = [
     "ataraxia",
     "ataraxia/macros",
     "ataraxia-voice",
+    "nightingale",
     "examples"
 ]
 
